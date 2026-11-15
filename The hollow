@@ -1,0 +1,468 @@
+-- !!!!!!!!!!   READ ME   !!!!!!!!!!
+--Click tickets bottom left of your screen, and walk to elevator.
+--click Floor 7 then Click "M" to unlock mouse and then you can execute the script
+--First TP To Brazier and take the torch.
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", true))()
+
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+
+--// SETTINGS
+local espEnabled = false
+local trackedPumpkins = {}
+local pumpkinCache = {}
+local tpCycle = {}
+local tpIndex = 0
+local tpCycleSize = 4
+
+--// VEROX COLOR THEME (BLUE)
+local VEROX = {
+    BgDark = Color3.fromRGB(10, 16, 24),
+    BgCard = Color3.fromRGB(18, 28, 40),
+    Accent = Color3.fromRGB(30, 144, 220),
+    AccentHover = Color3.fromRGB(25, 120, 190),
+    Outline = Color3.fromRGB(40, 80, 120),
+    Text = Color3.fromRGB(240, 248, 255),
+    TextDim = Color3.fromRGB(140, 180, 210),
+    Danger = Color3.fromRGB(200, 55, 55),
+}
+
+--// GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "VeroxPumpkinFinderGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.new(0, 250, 0, 255)
+main.Position = UDim2.new(0.5, -125, 0.5, -107)
+main.BackgroundColor3 = VEROX.BgDark
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+main.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = main
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = VEROX.Accent
+mainStroke.Thickness = 1.5
+mainStroke.Transparency = 0.3
+mainStroke.Parent = main
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 0, 35)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Verox Pumpkin Finder"
+title.TextColor3 = VEROX.Text
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = main
+
+local titleAccent = Instance.new("TextLabel")
+titleAccent.Size = UDim2.new(0, 80, 0, 14)
+titleAccent.Position = UDim2.new(0, 12, 0, 22)
+titleAccent.BackgroundTransparency = 1
+titleAccent.Text = "VEROX HUB"
+titleAccent.TextColor3 = VEROX.Accent
+titleAccent.TextSize = 9
+titleAccent.Font = Enum.Font.GothamBlack
+titleAccent.TextXAlignment = Enum.TextXAlignment.Left
+titleAccent.Parent = main
+
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 30, 0, 28)
+closeButton.Position = UDim2.new(1, -34, 0, 4)
+closeButton.BackgroundColor3 = VEROX.Danger
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.new(1, 1, 1)
+closeButton.TextSize = 15
+closeButton.Font = Enum.Font.GothamBold
+closeButton.Parent = main
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 6)
+closeCorner.Parent = closeButton
+
+local function makeButton(text, position, color)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -20, 0, 40)
+    button.Position = position
+    button.BackgroundColor3 = color
+    button.BorderSizePixel = 0
+    button.Text = text
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.TextSize = 14
+    button.Font = Enum.Font.GothamBold
+    button.Parent = main
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 6)
+    buttonCorner.Parent = button
+
+    local buttonStroke = Instance.new("UIStroke")
+    buttonStroke.Color = VEROX.Outline
+    buttonStroke.Thickness = 1
+    buttonStroke.Transparency = 0.4
+    buttonStroke.Parent = button
+
+    return button
+end
+
+local espButton = makeButton(
+    "Pumpkin ESP: OFF",
+    UDim2.new(0, 10, 0, 45),
+    VEROX.BgCard
+)
+
+local tpButton = makeButton(
+    "TP to Pumpkin (0/4)",
+    UDim2.new(0, 10, 0, 95),
+    Color3.fromRGB(50, 110, 180)
+)
+
+local brazierButton = makeButton(
+    "TP to Brazier",
+    UDim2.new(0, 10, 0, 145),
+    Color3.fromRGB(60, 80, 140)
+)
+
+local elevatorButton = makeButton(
+    "TP to Elevator",
+    UDim2.new(0, 10, 0, 195),
+    Color3.fromRGB(40, 110, 160)
+)
+
+--// CHARACTER
+local function getRoot()
+    local character = player.Character
+    if not character then
+        return nil
+    end
+    return character:FindFirstChild("HumanoidRootPart")
+end
+
+--// CHECK PUMPKIN TRANSPARENCY
+local function isPumpkinVisible(pumpkin)
+    if pumpkin:IsA("BasePart") then
+        return pumpkin.Transparency == 0
+    end
+    if pumpkin:IsA("Model") then
+        for _, part in ipairs(pumpkin:GetDescendants()) do
+            if part:IsA("BasePart") and part.Transparency == 0 then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+--// SEARCH FOR VISIBLE PUMPKINS
+local function getPumpkins()
+    local pumpkins = {}
+    local seen = {}
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.Name == "Model" then
+            for _, child in ipairs(obj:GetDescendants()) do
+                if child.Name == "Pumpkin"
+                    and (child:IsA("Model") or child:IsA("BasePart"))
+                    and not seen[child]
+                    and isPumpkinVisible(child) then
+
+                    seen[child] = true
+                    table.insert(pumpkins, child)
+                end
+            end
+        end
+    end
+
+    return pumpkins
+end
+
+local function getObjectPosition(obj)
+    if not obj then
+        return nil
+    end
+    if obj:IsA("BasePart") then
+        return obj.Position
+    elseif obj:IsA("Model") then
+        return obj:GetPivot().Position
+    end
+    return nil
+end
+
+local function findTargetInModels(targetName)
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.Name == "Model" then
+            for _, child in ipairs(obj:GetDescendants()) do
+                if child.Name == targetName
+                    and (child:IsA("Model") or child:IsA("BasePart")) then
+                    return child
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local brazierTarget = findTargetInModels("Brazier")
+
+local elevatorTarget = nil
+
+for _, obj in ipairs(Workspace:GetDescendants()) do
+    if obj.Name == "MazeElevatorExit"
+        and (obj:IsA("Model") or obj:IsA("BasePart")) then
+        elevatorTarget = obj
+        break
+    end
+end
+
+--// REMOVE ESP
+local function removeEsp(obj)
+    local data = trackedPumpkins[obj]
+    if not data then
+        return
+    end
+    if data.highlight then
+        data.highlight:Destroy()
+    end
+    if data.label then
+        data.label:Destroy()
+    end
+    trackedPumpkins[obj] = nil
+end
+
+local function clearEsp()
+    for obj in pairs(trackedPumpkins) do
+        removeEsp(obj)
+    end
+end
+
+--// CREATE ESP
+local function addEsp(obj)
+    if not espEnabled or trackedPumpkins[obj] then
+        return
+    end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "VeroxPumpkinESPHighlight"
+    highlight.Adornee = obj
+    highlight.FillColor = VEROX.Accent
+    highlight.OutlineColor = Color3.fromRGB(150, 210, 255)
+    highlight.FillTransparency = 0.45
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = screenGui
+
+    local label = Instance.new("BillboardGui")
+    label.Name = "VeroxPumpkinESPLabel"
+    label.Adornee = obj
+    label.Size = UDim2.new(0, 120, 0, 30)
+    label.StudsOffset = Vector3.new(0, 3, 0)
+    label.AlwaysOnTop = true
+    label.Parent = screenGui
+
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.BackgroundTransparency = 1
+    text.Text = "PUMPKIN"
+    text.TextColor3 = VEROX.Accent
+    text.TextStrokeTransparency = 0
+    text.TextScaled = true
+    text.Font = Enum.Font.GothamBold
+    text.Parent = label
+
+    trackedPumpkins[obj] = {
+        highlight = highlight,
+        label = label
+    }
+end
+
+--// ESP TOGGLE
+espButton.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+
+    if espEnabled then
+        espButton.Text = "Pumpkin ESP: ON"
+        espButton.BackgroundColor3 = Color3.fromRGB(45, 145, 80)
+
+        pumpkinCache = getPumpkins()
+
+        for _, pumpkin in ipairs(pumpkinCache) do
+            if pumpkin:IsDescendantOf(Workspace) then
+                addEsp(pumpkin)
+            end
+        end
+    else
+        espButton.Text = "Pumpkin ESP: OFF"
+        espButton.BackgroundColor3 = VEROX.BgCard
+
+        clearEsp()
+        pumpkinCache = {}
+    end
+end)
+
+--// FIND CLOSEST UNVISITED PUMPKIN
+local function getClosestPumpkin(excluded)
+    local root = getRoot()
+    if not root then
+        return nil
+    end
+
+    local closest = nil
+    local closestDistance = math.huge
+
+    for _, pumpkin in ipairs(pumpkinCache) do
+        if not excluded[pumpkin]
+            and pumpkin:IsDescendantOf(Workspace)
+            and isPumpkinVisible(pumpkin) then
+
+            local position = getObjectPosition(pumpkin)
+
+            if position then
+                local distance = (root.Position - position).Magnitude
+
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closest = pumpkin
+                end
+            end
+        end
+    end
+
+    return closest
+end
+
+--// TP TO PUMPKIN
+tpButton.MouseButton1Click:Connect(function()
+    local root = getRoot()
+    if not root then
+        return
+    end
+
+    if #pumpkinCache == 0 then
+        pumpkinCache = getPumpkins()
+    end
+
+    if tpIndex >= tpCycleSize then
+        tpCycle = {}
+        tpIndex = 0
+    end
+
+    for pumpkin in pairs(tpCycle) do
+        if not pumpkin:IsDescendantOf(Workspace) then
+            tpCycle[pumpkin] = nil
+        end
+    end
+
+    local target = getClosestPumpkin(tpCycle)
+
+    if not target then
+        tpButton.Text = "No new pumpkins found"
+        return
+    end
+
+    local position = getObjectPosition(target)
+    if not position then
+        return
+    end
+
+    tpCycle[target] = true
+    root.CFrame = CFrame.new(position + Vector3.new(0, 4, 0))
+
+    tpIndex += 1
+    tpButton.Text = "TP to Pumpkin (" .. tpIndex .. "/4)"
+end)
+
+--// TP TO BRAZIER
+brazierButton.MouseButton1Click:Connect(function()
+    local root = getRoot()
+
+    if not root then
+        return
+    end
+
+    if not brazierTarget or not brazierTarget:IsDescendantOf(Workspace) then
+        brazierButton.Text = "Brazier not found"
+        task.wait(1.5)
+        if brazierButton.Parent then
+            brazierButton.Text = "TP to Brazier"
+        end
+        return
+    end
+
+    local position = getObjectPosition(brazierTarget)
+
+    if not position then
+        brazierButton.Text = "Invalid Brazier position"
+        task.wait(1.5)
+        if brazierButton.Parent then
+            brazierButton.Text = "TP to Brazier"
+        end
+        return
+    end
+
+    root.CFrame = CFrame.new(position + Vector3.new(0, 4, 0))
+
+    brazierButton.Text = "Teleported!"
+    task.wait(1.5)
+
+    if brazierButton.Parent then
+        brazierButton.Text = "TP to Brazier"
+    end
+end)
+
+--// TP TO ELEVATOR
+elevatorButton.MouseButton1Click:Connect(function()
+    local root = getRoot()
+
+    if not root then
+        return
+    end
+
+    if not elevatorTarget or not elevatorTarget:IsDescendantOf(Workspace) then
+        elevatorButton.Text = "Elevator not found"
+        task.wait(1.5)
+        if elevatorButton.Parent then
+            elevatorButton.Text = "TP to Elevator"
+        end
+        return
+    end
+
+    local position = getObjectPosition(elevatorTarget)
+
+    if not position then
+        elevatorButton.Text = "Invalid Elevator position"
+        task.wait(1.5)
+        if elevatorButton.Parent then
+            elevatorButton.Text = "TP to Elevator"
+        end
+        return
+    end
+
+    root.CFrame = CFrame.new(position + Vector3.new(-15, 4, 0))
+
+    elevatorButton.Text = "Teleported!"
+    task.wait(1.5)
+
+    if elevatorButton.Parent then
+        elevatorButton.Text = "TP to Elevator"
+    end
+end)
+
+--// CLOSE BUTTON
+closeButton.MouseButton1Click:Connect(function()
+    espEnabled = false
+    clearEsp()
+    screenGui:Destroy()
+end)

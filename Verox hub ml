@@ -3,9 +3,9 @@ local displayName = game.Players.LocalPlayer.DisplayName
 
 local window = library:AddWindow(" VEROX HUB | Muscle Legends || HI - ".. displayName, {
  title_bar = {
-    Color3.fromRGB(255, 0, 0),
-    Color3.fromRGB(100, 0, 0),
-    Color3.fromRGB(25, 0, 0)
+Color3.fromRGB(0, 0, 255),
+    Color3.fromRGB(0, 0, 100),
+    Color3.fromRGB(0, 0, 25)
 },
 title_bar_transparency = 0.1,
 background = {
@@ -14,10 +14,11 @@ background = {
     Color3.fromRGB(20, 20, 20)
 },
 background_transparency = 0.1,
-main_color = Color3.fromRGB(255, 0, 0),
+main_color = Color3.fromRGB(0, 120, 255),
 min_size = Vector2.new(500, 350),
 can_resize = true
 })
+
 
 
 

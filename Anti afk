@@ -1,0 +1,162 @@
+--[[
+    VEROX // AFK
+    - Her oyunda çalışır
+    - 10 dakikada bir otomatik tıklar (anti-AFK)
+    - Overlay: MS / FPS / Geçen Süre
+--]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+
+--=============================================================
+-- AYARLAR
+--=============================================================
+local INTERVAL = 10 * 60   -- 10 dakika (saniye)
+local CLICK_DELAY = 0.05   -- tıklama sonrası bekleme
+
+--=============================================================
+-- OVERLAY GUI
+--=============================================================
+local function createOverlay()
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "VEROX_AFK"
+    sg.ResetOnSpawn = false
+    sg.IgnoreGuiInset = true
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    sg.Parent = CoreGui
+
+    local frame = Instance.new("Frame")
+    frame.Name = "Main"
+    frame.Size = UDim2.new(0, 230, 0, 110)
+    frame.Position = UDim2.new(1, -245, 0, 15)
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    frame.BackgroundTransparency = 0.15
+    frame.BorderSizePixel = 0
+    frame.Parent = sg
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(160, 60, 255)
+    stroke.Thickness = 1.5
+    stroke.Parent = frame
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 26)
+    title.BackgroundTransparency = 1
+    title.Text = "VEROX // AFK"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 15
+    title.TextColor3 = Color3.fromRGB(170, 90, 255)
+    title.Parent = frame
+
+    local info = Instance.new("TextLabel")
+    info.Name = "Info"
+    info.Size = UDim2.new(1, -20, 1, -34)
+    info.Position = UDim2.new(0, 10, 0, 30)
+    info.BackgroundTransparency = 1
+    info.TextXAlignment = Enum.TextXAlignment.Left
+    info.TextYAlignment = Enum.TextYAlignment.Top
+    info.Font = Enum.Font.Code
+    info.TextSize = 13
+    info.TextColor3 = Color3.fromRGB(220, 220, 220)
+    info.Text = "Başlatılıyor..."
+    info.Parent = frame
+
+    return sg, info
+end
+
+local sg, infoLabel = createOverlay()
+
+--=============================================================
+-- METRİKLER
+--=============================================================
+local startTime = tick()
+local lastPing = 0
+local lastFps = 0
+local fpsFrames = 0
+local fpsTimer = 0
+local clickCount = 0
+
+-- Ping ölçümü (Stats üzerinden)
+local function measurePing()
+    local ok, value = pcall(function()
+        return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
+    end)
+    return ok and math.floor(value) or 0
+end
+
+--=============================================================
+-- ANTI-AFK TIKLAMA
+--=============================================================
+local function antiAfkClick()
+    -- Mouse hareketi + tıklama simülasyonu (birçok oyunda AFK kick'ini engeller)
+    pcall(function()
+        local vp = workspace.CurrentCamera.ViewportSize
+        local randomPos = Vector2.new(
+            math.random(50, vp.X - 50),
+            math.random(50, vp.Y - 50)
+        )
+
+        -- Mouse'u hareket ettir
+        local moveEvent = Instance.new("MouseMoveEvent") -- placeholder
+
+        -- VirtualInputManager ile tıklama
+        local VIM = game:GetService("VirtualInputManager")
+        VIM:SendMouseMoveEvent(randomPos, workspace.CurrentCamera)
+        task.wait(0.03)
+        VIM:SendMouseButtonEvent(randomPos.X, randomPos.Y, 0, true, game, 1)
+        task.wait(CLICK_DELAY)
+        VIM:SendMouseButtonEvent(randomPos.X, randomPos.Y, 0, false, game, 1)
+
+        -- Klavye hareketi (bazı oyunlar space ister)
+        task.wait(0.03)
+        VIM:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+        task.wait(0.03)
+        VIM:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+    end)
+
+    clickCount = clickCount + 1
+end
+
+--=============================================================
+-- ANA DÖNGÜ (10 dk aralık)
+--=============================================================
+task.spawn(function()
+    task.wait(INTERVAL) -- ilk tıklama 10 dk sonra
+    while true do
+        antiAfkClick()
+        task.wait(INTERVAL)
+    end
+end)
+
+--=============================================================
+-- GÜNCELLEME DÖNGÜSÜ
+--=============================================================
+RunService.RenderStepped:Connect(function(dt)
+    fpsFrames = fpsFrames + 1
+    fpsTimer = fpsTimer + dt
+    if fpsTimer >= 1 then
+        lastFps = fpsFrames
+        fpsFrames = 0
+        fpsTimer = 0
+        lastPing = measurePing()
+    end
+
+    local elapsed = tick() - startTime
+    local h = math.floor(elapsed / 3600)
+    local m = math.floor((elapsed % 3600) / 60)
+    local s = math.floor(elapsed % 60)
+
+    infoLabel.Text = string.format(
+        "MS  : %d ms\nFPS : %d\nSüre: %02d:%02d:%02d\nTık : %d",
+        lastPing, lastFps, h, m, s, clickCount
+    )
+end)
+
+print("[VEROX // AFK] aktif — her 10 dakikada bir tıklanacak.")

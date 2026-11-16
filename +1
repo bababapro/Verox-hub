@@ -1,1132 +1,1819 @@
---[[
-    VEROX HUB | +1 Speed Monkey Escape
-    Custom GUI | Blue Edition | VX Logo
-]]
+-- [[ KRYVEX | 99 Nights in the Forest ]] --
+-- Deobfuscated & Rebranded by Kryvex
+-- Original: Foxname ss2 (catspooky deobf)
 
---// ==========================================
---// SERVICES
---// ==========================================
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-local VIM = game:GetService("VirtualInputManager")
-local VU = game:GetService("VirtualUser")
-local TweenService = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
+-- Dummy MV functions (keep obfuscator compatibility if needed)
+getgenv().MV_OMIT = function(a,b) end
+getgenv().MV_OMIT_CFF = function(a,b) end
+getgenv().MV_OMIT_VM = function(a,b) end
+getgenv().MV_CFF = function(a,b) end
+getgenv().MV_VM = function(a,b) end
+getgenv().MV_COMPRESS = function(a,b) end
+getgenv().MV_ENC_FUNC = function(a,b) end
+getgenv().MV_ENC_STR = function(a,b) end
+getgenv().MV_INLINE = function(a,b) end
+getgenv().MV_INDEX_TO_NUM = function(a,b) end
+getgenv().MV_CRASH = function(a,b) end
 
-local LP = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+task.spawn(function(...)
+    local StarterGui = game:GetService("StarterGui")
+    getgenv().Fn_Running = true
+    getgenv().fn_running = true
 
---// ==========================================
---// VEROX BLUE THEME
---// ==========================================
-local BLUE = Color3.fromRGB(30, 144, 220)
-local DARK_BLUE = Color3.fromRGB(15, 60, 140)
-local LIGHT_BLUE = Color3.fromRGB(60, 180, 255)
-local BG_BLACK = Color3.fromRGB(4, 12, 18)
-local BG_CARD = Color3.fromRGB(7, 22, 30)
-local BG_CARD_HOVER = Color3.fromRGB(10, 35, 48)
-local TEXT_WHITE = Color3.fromRGB(240, 248, 255)
-local TEXT_SUB = Color3.fromRGB(130, 170, 200)
-local OUTLINE = Color3.fromRGB(20, 60, 100)
-
---// ==========================================
---// STATE
---// ==========================================
-local State = {
-    AutoWalk = false,
-    AutoWin = false,
-    AutoTrain = false,
-    AutoRebirth = false,
-    AutoBuyUpgrade = false,
-    Fly = false,
-    FlySpeed = 300,
-    Noclip = false,
-    InfiniteJump = false,
-    WalkSpeed = 16,
-    JumpPower = 50,
-    AntiAFK = false,
-    WinPos = Vector3.new(-6809.3223, 531.2539, 1468.8073),
-    WinSpeed = 300,
-    WinHeight = 900,
-}
-
---// ==========================================
---// VEROX GUI LIBRARY (Custom)
---// ==========================================
-local Verox = {}
-
-function Verox.CreateWatermark()
-    local parent = LP:FindFirstChildOfClass("PlayerGui") or game:GetService("CoreGui")
-    local old = parent:FindFirstChild("VeroxWatermark")
-    if old then old:Destroy() end
-
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "VeroxWatermark"
-    gui.ResetOnSpawn = false
-    gui.IgnoreGuiInset = true
-    gui.DisplayOrder = 99999
-    gui.Parent = parent
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 260, 0, 56)
-    frame.Position = UDim2.new(0, 20, 0, 20)
-    frame.BackgroundColor3 = BG_BLACK
-    frame.BackgroundTransparency = 0.1
-    frame.BorderSizePixel = 0
-    frame.Active = true
-    frame.Parent = gui
-
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
-    
-    local stroke = Instance.new("UIStroke", frame)
-    stroke.Color = BLUE
-    stroke.Thickness = 2
-    stroke.Transparency = 0.15
-
-    -- VX Logo
-    local vxBox = Instance.new("Frame", frame)
-    vxBox.Size = UDim2.new(0, 42, 0, 42)
-    vxBox.Position = UDim2.new(0, 8, 0.5, 0)
-    vxBox.AnchorPoint = Vector2.new(0, 0.5)
-    vxBox.BackgroundColor3 = DARK_BLUE
-    vxBox.BorderSizePixel = 0
-    Instance.new("UICorner", vxBox).CornerRadius = UDim.new(1, 0)
-
-    local vxGrad = Instance.new("UIGradient", vxBox)
-    vxGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, LIGHT_BLUE),
-        ColorSequenceKeypoint.new(1, DARK_BLUE)
+    StarterGui:SetCore("SendNotification", {
+        Text = "Kryvex yükleniyor...",
+        Title = "Kryvex | 99 Nights",
+        Duration = 6
     })
-    vxGrad.Rotation = 45
 
-    local vxLabel = Instance.new("TextLabel", vxBox)
-    vxLabel.Size = UDim2.new(1, 0, 1, 0)
-    vxLabel.BackgroundTransparency = 1
-    vxLabel.Text = "VX"
-    vxLabel.Font = Enum.Font.GothamBlack
-    vxLabel.TextSize = 20
-    vxLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    vxLabel.TextStrokeTransparency = 0.3
-    vxLabel.TextStrokeColor3 = Color3.fromRGB(0, 30, 60)
+    -- WindUI yükle
+    local response = game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua")
+    local result = loadstring(response)()
 
-    local title = Instance.new("TextLabel", frame)
-    title.Size = UDim2.new(1, -58, 0, 24)
-    title.Position = UDim2.new(0, 56, 0, 6)
-    title.BackgroundTransparency = 1
-    title.Text = "VEROX HUB"
-    title.TextColor3 = Color3.fromRGB(50, 180, 255)
-    title.Font = Enum.Font.GothamBlack
-    title.TextSize = 16
-    title.TextXAlignment = Enum.TextXAlignment.Left
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Lighting = game:GetService("Lighting")
+    local UserInputService = game:GetService("UserInputService")
+    local HttpService = game:GetService("HttpService")
+    local ProximityPromptService = game:GetService("ProximityPromptService")
+    local ContentProvider = game:GetService("ContentProvider")
+    local CollectionService = game:GetService("CollectionService")
+    local VirtualInputManager = game:GetService("VirtualInputManager")
+    local GuiService = game:GetService("GuiService")
 
-    local info = Instance.new("TextLabel", frame)
-    info.Size = UDim2.new(1, -58, 0, 18)
-    info.Position = UDim2.new(0, 56, 0, 30)
-    info.BackgroundTransparency = 1
-    info.Text = "Monkey Escape"
-    info.TextColor3 = TEXT_SUB
-    info.Font = Enum.Font.Code
-    info.TextSize = 11
-    info.TextXAlignment = Enum.TextXAlignment.Left
+    -- Klasörler
+    pcall(function() makefolder("Assets") end)
+    pcall(function() makefolder("Assets/Data") end)
+    pcall(function() makefolder("Kryvex") end)
+    pcall(function() makefolder("Kryvex/99Nights") end)
 
-    local frames, fpsTick = 0, tick()
-    RunService.RenderStepped:Connect(function()
-        frames = frames + 1
-        if tick() - fpsTick >= 1 then
-            local ping = 0
-            pcall(function()
-                ping = math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
-            end)
-            info.Text = string.format("Monkey Escape | FPS: %d | Ping: %dms", frames, ping)
-            frames, fpsTick = 0, tick()
-        end
+    -- Tema renkleri (Kryvex teması - mor/mavi tonları)
+    local KryvexTheme = {
+        Accent = result:Gradient({
+            ["0"]  = { Color = Color3.fromHex("#8A2BE2"), Transparency = 0 },
+            ["50"] = { Color = Color3.fromHex("#4B0082"), Transparency = 0 },
+            ["100"]= { Color = Color3.fromHex("#191970"), Transparency = 0 }
+        }, { Rotation = 45 }),
+        Text = result:Gradient({
+            ["0"]  = { Color = Color3.fromHex("#FFFFFF"), Transparency = 0 },
+            ["50"] = { Color = Color3.fromHex("#E0E0FF"), Transparency = 0 },
+            ["100"]= { Color = Color3.fromHex("#C0C0FF"), Transparency = 0 }
+        }, { Rotation = 45 }),
+        Background = result:Gradient({
+            ["0"]  = { Color = Color3.fromHex("#0D0D1A"), Transparency = 0 },
+            ["50"] = { Color = Color3.fromHex("#1A1A33"), Transparency = 0 },
+            ["100"]= { Color = Color3.fromHex("#2E2E5C"), Transparency = 0 }
+        }, { Rotation = 90 }),
+        Button = result:Gradient({
+            ["0"]  = { Color = Color3.fromHex("#8A2BE2"), Transparency = 0 },
+            ["50"] = { Color = Color3.fromHex("#6A1B9A"), Transparency = 0 },
+            ["100"]= { Color = Color3.fromHex("#4B0082"), Transparency = 0 }
+        }, { Rotation = 45 }),
+        Dialog = result:Gradient({
+            ["0"]  = { Color = Color3.fromHex("#101026"), Transparency = 0 },
+            ["50"] = { Color = Color3.fromHex("#1A1A3D"), Transparency = 0 },
+            ["100"]= { Color = Color3.fromHex("#333366"), Transparency = 0 }
+        }, { Rotation = 90 }),
+        Icon = result:Gradient({
+            ["0"]  = { Color = Color3.fromHex("#A0A0FF"), Transparency = 0 },
+            ["50"] = { Color = Color3.fromHex("#8080E0"), Transparency = 0 },
+            ["100"]= { Color = Color3.fromHex("#6060C0"), Transparency = 0 }
+        }, { Rotation = 45 }),
+        Outline = result:Gradient({
+            ["0"]  = { Color = Color3.fromHex("#2E2E5C"), Transparency = 0 },
+            ["50"] = { Color = Color3.fromHex("#404080"), Transparency = 0 },
+            ["100"]= { Color = Color3.fromHex("#5050A0"), Transparency = 0 }
+        }, { Rotation = 90 }),
+        Placeholder = result:Gradient({
+            ["0"]  = { Color = Color3.fromHex("#6060A0"), Transparency = 0 },
+            ["50"] = { Color = Color3.fromHex("#8080C0"), Transparency = 0 },
+            ["100"]= { Color = Color3.fromHex("#A0A0E0"), Transparency = 0 }
+        }, { Rotation = 45 })
+    }
+
+    result:AddTheme({
+        Name = "Kryvex",
+        Text = KryvexTheme.Text,
+        Accent = KryvexTheme.Accent,
+        Background = KryvexTheme.Background,
+        Button = KryvexTheme.Button,
+        Dialog = KryvexTheme.Dialog,
+        Icon = KryvexTheme.Icon,
+        Outline = KryvexTheme.Outline,
+        Placeholder = KryvexTheme.Placeholder
+    })
+
+    result:GetThemes()
+    result:SetTheme("Kryvex")
+
+    -- Pencere
+    local Window = result:CreateWindow({
+        Title = "<font color=\"#8A2BE2\">K</font><font color=\"#7B2FDF\">r</font><font color=\"#6C33DC\">y</font><font color=\"#5D37D9\">v</font><font color=\"#4E3BD6\">e</font><font color=\"#3F3FD3\">x</font><font color=\"#3043D0\"> </font><font color=\"#2147CD\">|</font><font color=\"#124BCA\"> </font><font color=\"#034FC7\">9</font><font color=\"#0053C4\">9</font><font color=\"#0057C1\"> </font><font color=\"#005BBE\">N</font><font color=\"#005FBB\">i</font><font color=\"#0063B8\">g</font><font color=\"#0067B5\">h</font><font color=\"#006BB2\">t</font><font color=\"#006FAF\">s</font>",
+        Author = "kryvex.gg",
+        Background = "rbxassetid://133610205520685",
+        BackgroundImageTransparency = 0.55,
+        Folder = "Kryvex_99Nights",
+        Icon = "rbxassetid://82225829203828",
+        ScrollBarEnabled = true,
+        SideBarWidth = 190,
+        Size = UDim2.fromOffset(620, 380),
+        Theme = "Kryvex"
+    })
+
+    Window:Tag({ Title = "Kryvex v2.0", Color = Color3.fromHex("#8A2BE2"), Radius = 8 })
+    Window.IsPC = false
+    Window:SetUIScale(0.9)
+    Window:SetToggleKey(Enum.KeyCode.RightShift)
+    Window:EditOpenButton({
+        Title = "Kryvex Menü",
+        Color = ColorSequence.new(Color3.fromRGB(138, 43, 226), Color3.fromRGB(25, 25, 112)),
+        CornerRadius = UDim.new(0, 16),
+        Draggable = true,
+        Enabled = true,
+        Icon = "rbxassetid://86146615808159",
+        StrokeThickness = 2
+    })
+
+    -- Sekmeler
+    local Section = Window:Section({ Title = "Ana Sayfa", Icon = "star", Opened = true })
+    task.wait(0.02)
+    Section:Tab({ Title = "Discord", Icon = "messages-square" })
+    task.wait(0.02)
+    Section:Tab({ Title = "Güncelleme", Icon = "zap" })
+    task.wait(0.02)
+    Section:Tab({ Title = "Bağış", Icon = "money" })
+    task.wait(0.02)
+    Window:Divider()
+
+    local Section2 = Window:Section({ Title = "Özellikler", Icon = "box", Opened = true })
+    task.wait(0.02)
+    local Tab = Section2:Tab({ Title = "Savaş", Icon = "swords" })
+    task.wait(0.02)
+    local Tab2 = Section2:Tab({ Title = "Getir", Icon = "package-open" })
+    task.wait(0.02)
+    local Tab3 = Section2:Tab({ Title = "Işınlan", Icon = "map-pin" })
+    task.wait(0.02)
+    local TabLocal = Section2:Tab({ Title = "Oyuncu", Icon = "user" })
+    task.wait(0.02)
+    local TabMisc = Section2:Tab({ Title = "Diğer", Icon = "sparkles" })
+    task.wait(0.02)
+    local Tab4 = Section2:Tab({ Title = "Ağaç", Icon = "tree-pine" })
+    task.wait(0.02)
+    local TabESP = Section2:Tab({ Title = "ESP", Icon = "eye" })
+    task.wait(0.02)
+    local TabFarm = Section2:Tab({ Title = "Farm", Icon = "tractor" })
+    task.wait(0.02)
+    Window:Divider()
+    Window:Tab({ Title = "Ayarlar", Icon = "settings" })
+    task.wait(0.02)
+
+    Window.PendingFlags = Window.PendingFlags
+    Window.ConfigManager:CreateConfig("__autosave")
+
+    workspace:WaitForChild("Items", 5)
+    game.ReplicatedStorage:WaitForChild("RemoteEvents", 5)
+    local Inventory = game.Players.LocalPlayer:WaitForChild("Inventory", 5)
+    local Characters = workspace:WaitForChild("Characters", 5)
+
+    -- Global durumlar
+    _G.KillAura = false
+    _G.KillAuraRange = 100
+    _G.GunAura = false
+    _G.GunAuraRange = 150
+    _G.ChopAura = false
+    _G.ChopAuraRange = 100
+    _G.ChopTreeType = {}
+    _G.AutoStunDeer = false
+    _G.AutoStunOwl = false
+    _G.AutoStunRam = false
+    _G.AutoStunCat = false
+    _G.AutoStart = false
+    _G.AutoRevive = false
+    _G.AutoGrabChildren = false
+    _G.AutoFuel = false
+    _G.AutoFood = false
+    _G.AutoScrapper = false
+    _G.AutoSacrifice = false
+    _G.AutoEat = false
+    _G.AutoCatchFishing = false
+    _G.AutoTamingFlute = false
+    _G.AutoOpenAllChests = false
+    _G.TypeAuto = false
+    _G.TypeFoodToFill = "Carrot"
+
+    -- === YENİ EKLENEN KRYVEX ÖZELLİKLERİ ===
+    _G.SpeedEnabled = false
+    _G.SpeedValue = 16
+    _G.JumpEnabled = false
+    _G.JumpValue = 50
+    _G.NoclipEnabled = false
+    _G.FlyEnabled = false
+    _G.FullbrightEnabled = false
+    _G.AntiAFKEnabled = false
+    _G.PlayerESPEnabled = false
+    _G.ItemESPEnabled = false
+    _G.NPCESPEnabled = false
+    _G.AutoFarmEnabled = false
+    _G.AutoChopEnabled = false
+    _G.AutoMineEnabled = false
+    _G.AutoCollectEnabled = false
+    _G.AutoSellEnabled = false
+    _G.AutoPlantEnabled = false
+    _G.AutoWaterEnabled = false
+    _G.AutoTameEnabled = false
+    _G.AutoFishEnabled = false
+    _G.AutoCraftEnabled = false
+    _G.InfiniteJumpEnabled = false
+    _G.HitboxExpanderEnabled = false
+
+    -- Client require
+    pcall(function()
+        local Client = game.Players.LocalPlayer.PlayerScripts:WaitForChild("Client", 5)
+        if Client then require(Client) end
     end)
 
-    local drag, ds, sp
-    frame.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            drag, ds, sp = true, i.Position, frame.Position
-            i.Changed:Connect(function()
-                if i.UserInputState == Enum.UserInputState.End then drag = false end
-            end)
-        end
-    end)
-    UIS.InputChanged:Connect(function(i)
-        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-            local d = i.Position - ds
-            frame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y)
-        end
-    end)
-
-    return gui
-end
-
---// Notification System
-function Verox.Notify(title, content, duration)
-    local parent = LP:FindFirstChildOfClass("PlayerGui") or game:GetService("CoreGui")
-    
-    if not parent:FindFirstChild("VeroxNotifications") then
-        local notifGui = Instance.new("ScreenGui")
-        notifGui.Name = "VeroxNotifications"
-        notifGui.ResetOnSpawn = false
-        notifGui.IgnoreGuiInset = true
-        notifGui.DisplayOrder = 99998
-        notifGui.Parent = parent
-    end
-
-    local notifGui = parent:FindFirstChild("VeroxNotifications")
-    
-    if not notifGui:FindFirstChild("Holder") then
-        local holder = Instance.new("Frame", notifGui)
-        holder.Name = "Holder"
-        holder.Size = UDim2.new(0, 320, 1, -40)
-        holder.Position = UDim2.new(1, -20, 0, 20)
-        holder.AnchorPoint = Vector2.new(1, 0)
-        holder.BackgroundTransparency = 1
-        holder.Parent = notifGui
-
-        local layout = Instance.new("UIListLayout", holder)
-        layout.Padding = UDim.new(0, 8)
-        layout.SortOrder = Enum.SortOrder.LayoutOrder
-        layout.VerticalAlignment = Enum.VerticalAlignment.Top
-    end
-
-    local holder = notifGui:FindFirstChild("Holder")
-    
-    local frame = Instance.new("Frame", holder)
-    frame.Size = UDim2.new(1, 0, 0, 62)
-    frame.BackgroundColor3 = BG_CARD
-    frame.BackgroundTransparency = 0
-    frame.BorderSizePixel = 0
-    frame.Position = UDim2.new(1, 0, 0, 0)
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
-
-    local stroke = Instance.new("UIStroke", frame)
-    stroke.Color = BLUE
-    stroke.Thickness = 1.5
-    stroke.Transparency = 0.3
-
-    local accentBar = Instance.new("Frame", frame)
-    accentBar.Size = UDim2.new(0, 4, 1, 0)
-    accentBar.BackgroundColor3 = BLUE
-    accentBar.BorderSizePixel = 0
-    Instance.new("UICorner", accentBar).CornerRadius = UDim.new(0, 10)
-
-    local t = Instance.new("TextLabel", frame)
-    t.Size = UDim2.new(1, -20, 0, 22)
-    t.Position = UDim2.new(0, 14, 0, 8)
-    t.BackgroundTransparency = 1
-    t.Text = title or "Verox"
-    t.TextColor3 = Color3.fromRGB(80, 180, 255)
-    t.Font = Enum.Font.GothamBold
-    t.TextSize = 14
-    t.TextXAlignment = Enum.TextXAlignment.Left
-
-    local c = Instance.new("TextLabel", frame)
-    c.Size = UDim2.new(1, -20, 0, 30)
-    c.Position = UDim2.new(0, 14, 0, 28)
-    c.BackgroundTransparency = 1
-    c.Text = content or ""
-    c.TextColor3 = TEXT_WHITE
-    c.Font = Enum.Font.Gotham
-    c.TextSize = 12
-    c.TextXAlignment = Enum.TextXAlignment.Left
-    c.TextWrapped = true
-
-    local bar = Instance.new("Frame", frame)
-    bar.Size = UDim2.new(1, -20, 0, 3)
-    bar.Position = UDim2.new(0, 10, 1, -6)
-    bar.BackgroundColor3 = BLUE
-    bar.BorderSizePixel = 0
-    Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
-
-    TweenService:Create(frame, TweenInfo.new(0.3), {Position = UDim2.new(0, 0, 0, 0)}):Play()
-    TweenService:Create(bar, TweenInfo.new(duration or 3, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 0, 3)}):Play()
-
-    task.delay(duration or 3, function()
-        TweenService:Create(frame, TweenInfo.new(0.3), {Position = UDim2.new(1, 0, 0, 0)}):Play()
-        task.wait(0.35)
-        frame:Destroy()
-    end)
-end
-
---// Main Window
-function Verox.CreateWindow(title)
-    local parent = LP:FindFirstChildOfClass("PlayerGui") or game:GetService("CoreGui")
-    local old = parent:FindFirstChild("VeroxHub")
-    if old then old:Destroy() end
-
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "VeroxHub"
-    gui.ResetOnSpawn = false
-    gui.IgnoreGuiInset = true
-    gui.DisplayOrder = 9999
-    gui.Parent = parent
-
-    local main = Instance.new("Frame", gui)
-    main.Size = UDim2.new(0, 640, 0, 500)
-    main.Position = UDim2.new(0.5, 0, 0.5, 0)
-    main.AnchorPoint = Vector2.new(0.5, 0.5)
-    main.BackgroundColor3 = BG_BLACK
-    main.BorderSizePixel = 0
-    main.Active = true
-    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 14)
-
-    local mainStroke = Instance.new("UIStroke", main)
-    mainStroke.Color = BLUE
-    mainStroke.Thickness = 2
-    mainStroke.Transparency = 0.3
-
-    -- Top Bar
-    local topBar = Instance.new("Frame", main)
-    topBar.Size = UDim2.new(1, 0, 0, 44)
-    topBar.BackgroundColor3 = DARK_BLUE
-    topBar.BorderSizePixel = 0
-    Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 14)
-
-    local topFix = Instance.new("Frame", topBar)
-    topFix.Size = UDim2.new(1, 0, 0, 22)
-    topFix.Position = UDim2.new(0, 0, 1, -22)
-    topFix.BackgroundColor3 = DARK_BLUE
-    topFix.BorderSizePixel = 0
-
-    -- VX Logo in topbar
-    local titleVx = Instance.new("Frame", topBar)
-    titleVx.Size = UDim2.new(0, 30, 0, 30)
-    titleVx.Position = UDim2.new(0, 8, 0.5, 0)
-    titleVx.AnchorPoint = Vector2.new(0, 0.5)
-    titleVx.BackgroundColor3 = LIGHT_BLUE
-    titleVx.BorderSizePixel = 0
-    Instance.new("UICorner", titleVx).CornerRadius = UDim.new(1, 0)
-
-    local titleVxGrad = Instance.new("UIGradient", titleVx)
-    titleVxGrad.Color = ColorSequence.new(LIGHT_BLUE, DARK_BLUE)
-    titleVxGrad.Rotation = 45
-
-    local titleVxLabel = Instance.new("TextLabel", titleVx)
-    titleVxLabel.Size = UDim2.new(1, 0, 1, 0)
-    titleVxLabel.BackgroundTransparency = 1
-    titleVxLabel.Text = "VX"
-    titleVxLabel.Font = Enum.Font.GothamBlack
-    titleVxLabel.TextSize = 14
-    titleVxLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-    local titleLabel = Instance.new("TextLabel", topBar)
-    titleLabel.Size = UDim2.new(1, -100, 1, 0)
-    titleLabel.Position = UDim2.new(0, 46, 0, 0)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "VEROX HUB | " .. title
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextSize = 15
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-    local closeBtn = Instance.new("TextButton", topBar)
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -38, 0.5, 0)
-    closeBtn.AnchorPoint = Vector2.new(0, 0.5)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(25, 100, 180)
-    closeBtn.BorderSizePixel = 0
-    closeBtn.Text = "×"
-    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 20
-    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
-
-    closeBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
-    closeBtn.MouseEnter:Connect(function()
-        TweenService:Create(closeBtn, TweenInfo.new(0.1), {BackgroundColor3 = BLUE}):Play()
-    end)
-    closeBtn.MouseLeave:Connect(function()
-        TweenService:Create(closeBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(25, 100, 180)}):Play()
-    end)
-
-    -- Tab container
-    local tabBar = Instance.new("ScrollingFrame", main)
-    tabBar.Size = UDim2.new(0, 150, 1, -55)
-    tabBar.Position = UDim2.new(0, 5, 0, 49)
-    tabBar.BackgroundTransparency = 1
-    tabBar.ScrollBarThickness = 0
-    tabBar.CanvasSize = UDim2.new(0, 0, 0, 0)
-    tabBar.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    tabBar.Parent = main
-
-    local tabLayout = Instance.new("UIListLayout", tabBar)
-    tabLayout.Padding = UDim.new(0, 5)
-
-    -- Content
-    local contentFrame = Instance.new("Frame", main)
-    contentFrame.Size = UDim2.new(1, -165, 1, -55)
-    contentFrame.Position = UDim2.new(0, 160, 0, 49)
-    contentFrame.BackgroundColor3 = BG_CARD
-    contentFrame.BackgroundTransparency = 0.3
-    contentFrame.BorderSizePixel = 0
-    Instance.new("UICorner", contentFrame).CornerRadius = UDim.new(0, 10)
-
-    local contentStroke = Instance.new("UIStroke", contentFrame)
-    contentStroke.Color = OUTLINE
-    contentStroke.Thickness = 1
-    contentStroke.Transparency = 0.5
-
-    local scroll = Instance.new("ScrollingFrame", contentFrame)
-    scroll.Size = UDim2.new(1, -12, 1, -12)
-    scroll.Position = UDim2.new(0, 6, 0, 6)
-    scroll.BackgroundTransparency = 1
-    scroll.ScrollBarThickness = 4
-    scroll.ScrollBarImageColor3 = BLUE
-    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-    scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
-    local scrollLayout = Instance.new("UIListLayout", scroll)
-    scrollLayout.Padding = UDim.new(0, 7)
-    scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-    -- Window drag
-    local dragging, dragStart, startPos
-    topBar.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = i.Position
-            startPos = main.Position
-            i.Changed:Connect(function()
-                if i.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
-        end
-    end)
-    UIS.InputChanged:Connect(function(i)
-        if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-            local delta = i.Position - dragStart
-            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-
-    -- API
-    local tabs = {}
-    local api = {}
-
-    function api.AddTab(name)
-        local tabBtn = Instance.new("TextButton", tabBar)
-        tabBtn.Size = UDim2.new(1, -10, 0, 34)
-        tabBtn.BackgroundColor3 = BG_CARD
-        tabBtn.BackgroundTransparency = 0.5
-        tabBtn.BorderSizePixel = 0
-        tabBtn.Text = name
-        tabBtn.TextColor3 = TEXT_SUB
-        tabBtn.Font = Enum.Font.GothamBold
-        tabBtn.TextSize = 13
-        tabBtn.LayoutOrder = #tabs + 1
-        Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 6)
-
-        local tabContent = Instance.new("Frame", scroll)
-        tabContent.Size = UDim2.new(1, 0, 0, 0)
-        tabContent.AutomaticSize = Enum.AutomaticSize.Y
-        tabContent.BackgroundTransparency = 1
-        tabContent.Visible = false
-        tabContent.LayoutOrder = #tabs + 1
-
-        local tabContentLayout = Instance.new("UIListLayout", tabContent)
-        tabContentLayout.Padding = UDim.new(0, 7)
-        tabContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-        tabBtn.MouseButton1Click:Connect(function()
-            for _, t in pairs(tabs) do
-                t.btn.BackgroundTransparency = 0.5
-                t.btn.BackgroundColor3 = BG_CARD
-                t.btn.TextColor3 = TEXT_SUB
-                t.content.Visible = false
-            end
-            tabBtn.BackgroundTransparency = 0.2
-            tabBtn.BackgroundColor3 = BLUE
-            tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            tabContent.Visible = true
-        end)
-        
-        tabBtn.MouseEnter:Connect(function()
-            if tabBtn.BackgroundTransparency > 0.3 then
-                tabBtn.BackgroundColor3 = BG_CARD_HOVER
-            end
-        end)
-        tabBtn.MouseLeave:Connect(function()
-            if tabBtn.BackgroundTransparency > 0.3 then
-                tabBtn.BackgroundColor3 = BG_CARD
-            end
-        end)
-
-        local tabData = {btn = tabBtn, content = tabContent}
-        table.insert(tabs, tabData)
-
-        if #tabs == 1 then
-            tabBtn.BackgroundTransparency = 0.2
-            tabBtn.BackgroundColor3 = BLUE
-            tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            tabContent.Visible = true
-        end
-
-        local tabApi = {}
-        local order = 0
-
-        function tabApi.AddSection(text)
-            order = order + 1
-            local sec = Instance.new("Frame", tabContent)
-            sec.Size = UDim2.new(1, -10, 0, 28)
-            sec.BackgroundColor3 = DARK_BLUE
-            sec.BackgroundTransparency = 0.5
-            sec.BorderSizePixel = 0
-            sec.LayoutOrder = order
-            Instance.new("UICorner", sec).CornerRadius = UDim.new(0, 6)
-
-            local secLbl = Instance.new("TextLabel", sec)
-            secLbl.Size = UDim2.new(1, -20, 1, 0)
-            secLbl.Position = UDim2.new(0, 12, 0, 0)
-            secLbl.BackgroundTransparency = 1
-            secLbl.Text = "◆  " .. text
-            secLbl.TextColor3 = LIGHT_BLUE
-            secLbl.Font = Enum.Font.GothamBold
-            secLbl.TextSize = 13
-            secLbl.TextXAlignment = Enum.TextXAlignment.Left
-            return sec
-        end
-
-        function tabApi.AddButton(text, callback)
-            order = order + 1
-            local btn = Instance.new("TextButton", tabContent)
-            btn.Size = UDim2.new(1, -10, 0, 34)
-            btn.BackgroundColor3 = BG_CARD
-            btn.BackgroundTransparency = 0.2
-            btn.BorderSizePixel = 0
-            btn.Text = text
-            btn.TextColor3 = TEXT_WHITE
-            btn.Font = Enum.Font.Gotham
-            btn.TextSize = 13
-            btn.LayoutOrder = order
-            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-
-            local s = Instance.new("UIStroke", btn)
-            s.Color = BLUE
-            s.Thickness = 1
-            s.Transparency = 0.6
-
-            btn.MouseButton1Click:Connect(function() callback() end)
-            btn.MouseEnter:Connect(function()
-                TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = DARK_BLUE, BackgroundTransparency = 0.3}):Play()
-            end)
-            btn.MouseLeave:Connect(function()
-                TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = BG_CARD, BackgroundTransparency = 0.2}):Play()
-            end)
-            return btn
-        end
-
-        function tabApi.AddToggle(text, default, callback)
-            order = order + 1
-            local state = default
-            local toggle = Instance.new("TextButton", tabContent)
-            toggle.Size = UDim2.new(1, -10, 0, 34)
-            toggle.BackgroundColor3 = BG_CARD
-            toggle.BackgroundTransparency = 0.2
-            toggle.BorderSizePixel = 0
-            toggle.Text = ""
-            toggle.LayoutOrder = order
-            Instance.new("UICorner", toggle).CornerRadius = UDim.new(0, 6)
-
-            local s = Instance.new("UIStroke", toggle)
-            s.Color = BLUE
-            s.Thickness = 1
-            s.Transparency = 0.6
-
-            local lbl = Instance.new("TextLabel", toggle)
-            lbl.Size = UDim2.new(0.72, 0, 1, 0)
-            lbl.Position = UDim2.new(0, 12, 0, 0)
-            lbl.BackgroundTransparency = 1
-            lbl.Text = text
-            lbl.TextColor3 = TEXT_WHITE
-            lbl.Font = Enum.Font.Gotham
-            lbl.TextSize = 13
-            lbl.TextXAlignment = Enum.TextXAlignment.Left
-
-            local circle = Instance.new("Frame", toggle)
-            circle.Size = UDim2.new(0, 22, 0, 22)
-            circle.Position = UDim2.new(1, -30, 0.5, 0)
-            circle.AnchorPoint = Vector2.new(0, 0.5)
-            circle.BorderSizePixel = 0
-            Instance.new("UICorner", circle).CornerRadius = UDim.new(1, 0)
-
-            local function update()
-                if state then
-                    TweenService:Create(circle, TweenInfo.new(0.2), {BackgroundColor3 = BLUE}):Play()
-                    TweenService:Create(toggle, TweenInfo.new(0.2), {BackgroundColor3 = DARK_BLUE}):Play()
-                else
-                    TweenService:Create(circle, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 50, 80)}):Play()
-                    TweenService:Create(toggle, TweenInfo.new(0.2), {BackgroundColor3 = BG_CARD}):Play()
-                end
-            end
-            update()
-
-            toggle.MouseButton1Click:Connect(function()
-                state = not state
-                update()
-                callback(state)
-            end)
-            return toggle
-        end
-
-        function tabApi.AddSlider(text, min, max, default, callback)
-            order = order + 1
-            local slider = Instance.new("Frame", tabContent)
-            slider.Size = UDim2.new(1, -10, 0, 50)
-            slider.BackgroundColor3 = BG_CARD
-            slider.BackgroundTransparency = 0.2
-            slider.BorderSizePixel = 0
-            slider.LayoutOrder = order
-            Instance.new("UICorner", slider).CornerRadius = UDim.new(0, 6)
-
-            local s = Instance.new("UIStroke", slider)
-            s.Color = BLUE
-            s.Thickness = 1
-            s.Transparency = 0.6
-
-            local lbl = Instance.new("TextLabel", slider)
-            lbl.Size = UDim2.new(0.7, 0, 0, 22)
-            lbl.Position = UDim2.new(0, 12, 0, 4)
-            lbl.BackgroundTransparency = 1
-            lbl.Text = text
-            lbl.TextColor3 = TEXT_WHITE
-            lbl.Font = Enum.Font.Gotham
-            lbl.TextSize = 13
-            lbl.TextXAlignment = Enum.TextXAlignment.Left
-
-            local val = Instance.new("TextLabel", slider)
-            val.Size = UDim2.new(0.25, 0, 0, 22)
-            val.Position = UDim2.new(0.72, 0, 0, 4)
-            val.BackgroundTransparency = 1
-            val.Text = tostring(default)
-            val.TextColor3 = BLUE
-            val.Font = Enum.Font.GothamBold
-            val.TextSize = 13
-            val.TextXAlignment = Enum.TextXAlignment.Right
-
-            local bar = Instance.new("Frame", slider)
-            bar.Size = UDim2.new(1, -24, 0, 6)
-            bar.Position = UDim2.new(0, 12, 0, 32)
-            bar.BackgroundColor3 = Color3.fromRGB(15, 40, 60)
-            bar.BorderSizePixel = 0
-            Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
-
-            local fill = Instance.new("Frame", bar)
-            fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-            fill.BackgroundColor3 = BLUE
-            fill.BorderSizePixel = 0
-            Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
-            local dragging, startX, startVal
-            bar.InputBegan:Connect(function(i)
-                if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-                    dragging = true
-                    startX = i.Position
-                    startVal = fill.Size.X.Scale
-                    i.Changed:Connect(function()
-                        if i.UserInputState == Enum.UserInputState.End then dragging = false end
-                    end)
-                end
-            end)
-            UIS.InputChanged:Connect(function(i)
-                if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-                    local delta = (i.Position.X - startX.X) / bar.AbsoluteSize.X
-                    local newScale = math.clamp(startVal + delta, 0, 1)
-                    fill.Size = UDim2.new(newScale, 0, 1, 0)
-                    local v = math.floor(min + (max - min) * newScale)
-                    val.Text = tostring(v)
-                    callback(v)
-                end
-            end)
-            return slider
-        end
-
-        function tabApi.AddDropdown(text, options, callback)
-            order = order + 1
-            local dd = Instance.new("Frame", tabContent)
-            dd.Size = UDim2.new(1, -10, 0, 34)
-            dd.BackgroundColor3 = BG_CARD
-            dd.BackgroundTransparency = 0.2
-            dd.BorderSizePixel = 0
-            dd.LayoutOrder = order
-            dd.ClipsDescendants = false
-            Instance.new("UICorner", dd).CornerRadius = UDim.new(0, 6)
-
-            local s = Instance.new("UIStroke", dd)
-            s.Color = BLUE
-            s.Thickness = 1
-            s.Transparency = 0.6
-
-            local ddBtn = Instance.new("TextButton", dd)
-            ddBtn.Size = UDim2.new(1, 0, 1, 0)
-            ddBtn.BackgroundTransparency = 1
-            ddBtn.Text = text .. "  ▼"
-            ddBtn.TextColor3 = TEXT_WHITE
-            ddBtn.Font = Enum.Font.Gotham
-            ddBtn.TextSize = 13
-
-            local list = Instance.new("ScrollingFrame", dd)
-            list.Size = UDim2.new(1, 0, 0, 0)
-            list.Position = UDim2.new(0, 0, 1, 2)
-            list.BackgroundColor3 = BG_BLACK
-            list.BorderSizePixel = 0
-            list.ScrollBarThickness = 3
-            list.ScrollBarImageColor3 = BLUE
-            list.Visible = false
-            list.AutomaticCanvasSize = Enum.AutomaticSize.Y
-            list.CanvasSize = UDim2.new(0, 0, 0, 0)
-            list.ZIndex = 10
-            Instance.new("UICorner", list).CornerRadius = UDim.new(0, 6)
-
-            local listStroke = Instance.new("UIStroke", list)
-            listStroke.Color = BLUE
-            listStroke.Thickness = 1
-            listStroke.Transparency = 0.5
-
-            local layout = Instance.new("UIListLayout", list)
-            layout.Padding = UDim.new(0, 3)
-
-            local padding = Instance.new("UIPadding", list)
-            padding.PaddingTop = UDim.new(0, 4)
-            padding.PaddingLeft = UDim.new(0, 4)
-            padding.PaddingRight = UDim.new(0, 4)
-
-            local isOpen = false
-            for _, opt in ipairs(options) do
-                local optBtn = Instance.new("TextButton", list)
-                optBtn.Size = UDim2.new(1, -8, 0, 28)
-                optBtn.BackgroundColor3 = BG_CARD
-                optBtn.BackgroundTransparency = 0.4
-                optBtn.BorderSizePixel = 0
-                optBtn.Text = opt
-                optBtn.TextColor3 = TEXT_WHITE
-                optBtn.Font = Enum.Font.Gotham
-                optBtn.TextSize = 12
-                Instance.new("UICorner", optBtn).CornerRadius = UDim.new(0, 4)
-                optBtn.MouseButton1Click:Connect(function()
-                    ddBtn.Text = opt .. "  ▼"
-                    list.Visible = false
-                    isOpen = false
-                    callback(opt)
-                end)
-                optBtn.MouseEnter:Connect(function()
-                    optBtn.BackgroundColor3 = DARK_BLUE
-                end)
-                optBtn.MouseLeave:Connect(function()
-                    optBtn.BackgroundColor3 = BG_CARD
-                end)
-            end
-            
-            list.Size = UDim2.new(1, 0, 0, math.min(#options * 31 + 8, 180))
-
-            ddBtn.MouseButton1Click:Connect(function()
-                isOpen = not isOpen
-                list.Visible = isOpen
-            end)
-            return dd
-        end
-
-        function tabApi.AddInput(text, placeholder, callback)
-            order = order + 1
-            local inp = Instance.new("Frame", tabContent)
-            inp.Size = UDim2.new(1, -10, 0, 34)
-            inp.BackgroundColor3 = BG_CARD
-            inp.BackgroundTransparency = 0.2
-            inp.BorderSizePixel = 0
-            inp.LayoutOrder = order
-            Instance.new("UICorner", inp).CornerRadius = UDim.new(0, 6)
-
-            local s = Instance.new("UIStroke", inp)
-            s.Color = BLUE
-            s.Thickness = 1
-            s.Transparency = 0.6
-
-            local box = Instance.new("TextBox", inp)
-            box.Size = UDim2.new(1, -20, 1, 0)
-            box.Position = UDim2.new(0, 10, 0, 0)
-            box.BackgroundTransparency = 1
-            box.Text = ""
-            box.PlaceholderText = text .. " (" .. placeholder .. ")"
-            box.PlaceholderColor3 = TEXT_SUB
-            box.TextColor3 = TEXT_WHITE
-            box.Font = Enum.Font.Gotham
-            box.TextSize = 13
-            box.TextXAlignment = Enum.TextXAlignment.Left
-            box.ClearTextOnFocus = false
-
-            box.FocusLost:Connect(function() callback(box.Text) end)
-            return inp
-        end
-
-        function tabApi.AddLabel(text)
-            order = order + 1
-            local lbl = Instance.new("TextLabel", tabContent)
-            lbl.Size = UDim2.new(1, -10, 0, 22)
-            lbl.BackgroundTransparency = 1
-            lbl.Text = text
-            lbl.TextColor3 = TEXT_SUB
-            lbl.Font = Enum.Font.Gotham
-            lbl.TextSize = 12
-            lbl.TextXAlignment = Enum.TextXAlignment.Left
-            lbl.LayoutOrder = order
-            return lbl
-        end
-
-        return tabApi
-    end
-
-    return api, gui
-end
-
---// ==========================================
---// START GUI
---// ==========================================
-Verox.CreateWatermark()
-local Hub, HubGui = Verox.CreateWindow("Monkey Escape")
-
---// ==========================================
---// FLY SYSTEM
---// ==========================================
-local flyConn, flyBV, flyBG
-
-local function stopFly()
-    State.Fly = false
-    if flyConn then flyConn:Disconnect() flyConn = nil end
-    if flyBV then flyBV:Destroy() flyBV = nil end
-    if flyBG then flyBG:Destroy() flyBG = nil end
-    local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-    if hum then
-        hum.PlatformStand = false
-        hum:ChangeState(Enum.HumanoidStateType.Running)
-    end
-end
-
-local function startFly()
-    local char = LP.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
-    if flyBV then flyBV:Destroy() end
-    if flyBG then flyBG:Destroy() end
-    if flyConn then flyConn:Disconnect() end
-    hum.PlatformStand = true
-    flyBG = Instance.new("BodyGyro")
-    flyBG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-    flyBG.P = 50000
-    flyBG.CFrame = hrp.CFrame
-    flyBG.Parent = hrp
-    flyBV = Instance.new("BodyVelocity")
-    flyBV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    flyBV.Velocity = Vector3.zero
-    flyBV.Parent = hrp
-    flyConn = RunService.RenderStepped:Connect(function()
-        if not State.Fly then return end
-        local cam = Camera.CFrame
-        local speed = State.FlySpeed
-        local dir = Vector3.zero
-        if UIS:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.LookVector * speed end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.LookVector * speed end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.RightVector * speed end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.RightVector * speed end
-        if UIS:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.yAxis * speed end
-        if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.yAxis * speed end
-        flyBV.Velocity = dir
-        flyBG.CFrame = cam
-    end)
-end
-
---// ==========================================
---// AUTO FARM TAB
---// ==========================================
-local FarmTab = Hub.AddTab("Auto Farm")
-
-FarmTab.AddSection("Farming")
-
-FarmTab.AddToggle("Auto Walk", false, function(v)
-    State.AutoWalk = v
-    if v then
-        task.spawn(function()
-            while State.AutoWalk do
-                local char = LP.Character
-                local hum = char and char:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    hum:Move(Vector3.new(0, 0, 1), true)
-                    task.wait(0.1)
-                    hum:Move(Vector3.new(0, 0, -1), true)
-                end
-                task.wait(0.1)
-            end
-        end)
-    end
-end)
-
-FarmTab.AddToggle("Auto Train", false, function(v)
-    State.AutoTrain = v
-    if v then
-        task.spawn(function()
-            while State.AutoTrain do
-                pcall(function()
-                    local char = LP.Character
-                    if char and char:FindFirstChild("HumanoidRootPart") then
-                        char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0, 0, -1)
+    -- ============================================================
+    -- SAVAŞ SEKMESİ
+    -- ============================================================
+    Tab:Space()
+    local Section3 = Tab:Section({
+        Title = "Savaş Aurası",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "Kill Aura",
+        Icon = "swords",
+        Opened = true
+    })
+
+    Section3:Toggle({
+        Title = "Kill Aura",
+        Default = false,
+        Callback = function(state)
+            _G.KillAura = state
+            if state then
+                task.spawn(function()
+                    while _G.KillAura do
+                        pcall(function()
+                            local char = Players.LocalPlayer.Character
+                            if not char then return end
+                            local hrp = char:FindFirstChild("HumanoidRootPart")
+                            if not hrp then return end
+                            for _, npc in ipairs(Characters:GetChildren()) do
+                                local npcHrp = npc:FindFirstChild("HumanoidRootPart")
+                                if npcHrp and (npcHrp.Position - hrp.Position).Magnitude <= _G.KillAuraRange then
+                                    -- Hasar vermek için yaklaş
+                                    hrp.CFrame = npcHrp.CFrame * CFrame.new(0, 0, 2)
+                                    task.wait(0.05)
+                                end
+                            end
+                        end)
+                        task.wait(0.1)
                     end
                 end)
-                task.wait(0.05)
             end
-        end)
+        end
+    })
+
+    Section3:Slider({
+        Title = "Kill Aura Menzili",
+        Step = 1,
+        Value = { Default = 100, Max = 300, Min = 10 },
+        Callback = function(v)
+            _G.KillAuraRange = v
+        end
+    })
+
+    Section3:Toggle({
+        Title = "Gun Aura",
+        Default = false,
+        Callback = function(state)
+            _G.GunAura = state
+            if state then
+                task.spawn(function()
+                    while _G.GunAura do
+                        pcall(function()
+                            local char = Players.LocalPlayer.Character
+                            if not char then return end
+                            local hrp = char:FindFirstChild("HumanoidRootPart")
+                            if not hrp then return end
+                            for _, npc in ipairs(Characters:GetChildren()) do
+                                local npcHrp = npc:FindFirstChild("HumanoidRootPart")
+                                if npcHrp and (npcHrp.Position - hrp.Position).Magnitude <= _G.GunAuraRange then
+                                    local tool = char:FindFirstChildOfClass("Tool")
+                                    if tool and tool:FindFirstChild("Handle") then
+                                        -- Silah ateşleme simülasyonu
+                                        local fireRemote = ReplicatedStorage:FindFirstChild("RemoteEvents")
+                                        if fireRemote then
+                                            pcall(function()
+                                                fireRemote:FindFirstChild("FireWeapon"):FireServer(npc)
+                                            end)
+                                        end
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(0.15)
+                    end
+                end)
+            end
+        end
+    })
+
+    Section3:Slider({
+        Title = "Gun Aura Menzili",
+        Step = 1,
+        Value = { Default = 150, Max = 500, Min = 10 },
+        Callback = function(v)
+            _G.GunAuraRange = v
+        end
+    })
+
+    -- Tree Aura
+    local Section4 = Tab:Section({ Title = "Ağaç Aurası", Box = true, BoxBorder = true, Icon = "axe", Opened = true })
+
+    Section4:Slider({
+        Title = "Chop Aura Menzili",
+        Step = 1,
+        Value = { Default = 100, Max = 200, Min = 50 },
+        Callback = function(v)
+            _G.ChopAuraRange = v
+        end
+    })
+
+    local Map = workspace:FindFirstChild("Map")
+    local Foliage = Map and Map:FindFirstChild("Foliage")
+
+    Section4:Toggle({
+        Title = "Tree Aura",
+        Default = false,
+        Callback = function(state)
+            _G.ChopAura = state
+            if state then
+                task.spawn(function()
+                    while _G.ChopAura do
+                        pcall(function()
+                            local char = Players.LocalPlayer.Character
+                            if not char then return end
+                            local hrp = char:FindFirstChild("HumanoidRootPart")
+                            if not hrp then return end
+                            local fol = workspace.Map:FindFirstChild("Foliage")
+                            if fol then
+                                for _, tree in ipairs(fol:GetChildren()) do
+                                    local trunk = tree:FindFirstChild("Trunk")
+                                    if trunk and (trunk.Position - hrp.Position).Magnitude <= _G.ChopAuraRange then
+                                        hrp.CFrame = trunk.CFrame * CFrame.new(0, 0, 3)
+                                        task.wait(0.05)
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(0.1)
+                    end
+                end)
+            end
+        end
+    })
+
+    -- Creature Control
+    local Section5 = Tab:Section({
+        Title = "Yaratık Kontrolü",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "Stun",
+        Icon = "zap",
+        Opened = true
+    })
+
+    local function autoStun(npcName, globalKey)
+        return function(state)
+            _G[globalKey] = state
+            if state then
+                task.spawn(function()
+                    while _G[globalKey] do
+                        pcall(function()
+                            local monsterHit = ReplicatedStorage.RemoteEvents:FindFirstChild("MonsterHitByTorch")
+                            local npc = Characters:FindFirstChild(npcName)
+                            if monsterHit and npc then
+                                monsterHit:InvokeServer(npc)
+                            end
+                        end)
+                        task.wait(0.3)
+                    end
+                end)
+            end
+        end
     end
-end)
 
-FarmTab.AddSection("Auto Win")
+    Section5:Toggle({ Title = "Auto Stun Deer", Default = false, Callback = autoStun("Deer", "AutoStunDeer") })
+    Section5:Toggle({ Title = "Auto Stun Owl", Default = false, Callback = autoStun("Owl", "AutoStunOwl") })
+    Section5:Toggle({ Title = "Auto Stun Ram", Default = false, Callback = autoStun("Ram", "AutoStunRam") })
+    Section5:Toggle({ Title = "Auto Stun Cat", Default = false, Callback = autoStun("Cat", "AutoStunCat") })
 
-FarmTab.AddToggle("Auto Win (Smooth Travel)", false, function(v)
-    State.AutoWin = v
-    if v then
-        task.spawn(function()
-            while State.AutoWin do
-                local char = LP.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                if hrp and State.WinPos then
-                    if (hrp.Position - State.WinPos).Magnitude > 5 then
-                        State.Fly = true
-                        startFly()
-                        local oldNoclip = State.Noclip
-                        State.Noclip = true
-                        Verox.Notify("Verox | Auto Win", "Rising up...", 2)
-                        local startCF = hrp.CFrame
-                        local upCF = startCF * CFrame.new(0, State.WinHeight, 0)
-                        for i = 0, 1, 0.05 do
-                            if not State.AutoWin or not hrp.Parent then break end
-                            hrp.CFrame = startCF:Lerp(upCF, i)
-                            task.wait(0.02)
-                        end
-                        if not State.AutoWin or not hrp.Parent then State.Noclip = oldNoclip return end
+    -- Survival
+    local Section6 = Tab:Section({
+        Title = "Hayatta Kalma",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "Godmode",
+        Icon = "shield",
+        Opened = true
+    })
+
+    Section6:Button({
+        Title = "Anti Hit (Yıldırım Hasarı Engelle)",
+        Callback = function()
+            local mt = getrawmetatable(game)
+            local oldNamecall = mt.__namecall
+            setreadonly(mt, false)
+            mt.__namecall = newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                if method == "FireServer" or method == "InvokeServer" then
+                    if typeof(self) == "Instance" and string.find(string.lower(tostring(self.Name)), "lightningdamage", 1, true) then
+                        return
+                    end
+                end
+                return oldNamecall(self, ...)
+            end)
+            setreadonly(mt, true)
+            result:Notify({
+                Title = "Anti Hit",
+                Content = "Yıldırım hasarı engellendi!",
+                Duration = 3,
+                Icon = "shield-check"
+            })
+        end
+    })
+
+    Section6:Button({
+        Title = "Godmode (Yama Notu)",
+        Callback = function()
+            Window:Dialog({
+                Title = "Hayatta Kalma",
+                Content = "Godmode yamalandı. Lütfen Anti Hit kullanın (açlıktan hala hasar alabilirsiniz).",
+                Buttons = {
+                    { Title = "Tamam", Icon = "check", Variant = "Primary", Callback = function() end }
+                },
+                Icon = "shield-alert"
+            })
+        end
+    })
+
+    -- ============================================================
+    -- OYUNCU SEKMESİ (YENİ)
+    -- ============================================================
+    TabLocal:Space()
+    local SectionLocal = TabLocal:Section({
+        Title = "Oyuncu Ayarları",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "LocalPlayer",
+        Icon = "user",
+        Opened = true
+    })
+
+    SectionLocal:Slider({
+        Title = "Hız (Speed)",
+        Step = 1,
+        Value = { Default = 16, Max = 200, Min = 16 },
+        Callback = function(v)
+            _G.SpeedValue = v
+        end
+    })
+
+    SectionLocal:Toggle({
+        Title = "Hızı Aktifleştir",
+        Default = false,
+        Callback = function(state)
+            _G.SpeedEnabled = state
+            local char = Players.LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.WalkSpeed = state and _G.SpeedValue or 16 end
+        end
+    })
+
+    SectionLocal:Slider({
+        Title = "Zıplama (Jump)",
+        Step = 1,
+        Value = { Default = 50, Max = 500, Min = 50 },
+        Callback = function(v)
+            _G.JumpValue = v
+        end
+    })
+
+    SectionLocal:Toggle({
+        Title = "Zıplamayı Aktifleştir",
+        Default = false,
+        Callback = function(state)
+            _G.JumpEnabled = state
+            local char = Players.LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.JumpPower = state and _G.JumpValue or 50 end
+        end
+    })
+
+    SectionLocal:Toggle({
+        Title = "Sonsuz Zıplama",
+        Default = false,
+        Callback = function(state)
+            _G.InfiniteJumpEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.InfiniteJumpEnabled do
+                        pcall(function()
+                            local hum = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                            if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+                        end)
                         task.wait(0.2)
-                        Verox.Notify("Verox | Auto Win", "Traveling...", 2)
-                        local c1 = hrp.CFrame
-                        local target = Vector3.new(State.WinPos.X, hrp.Position.Y, State.WinPos.Z)
-                        local c2 = CFrame.new(target)
-                        local steps = math.max(1, math.floor((hrp.Position - target).Magnitude / (State.WinSpeed / 30)))
-                        for j = 1, steps do
-                            if not State.AutoWin or not hrp.Parent then break end
-                            hrp.CFrame = c1:Lerp(c2, j / steps)
+                    end
+                end)
+            end
+        end
+    })
+
+    SectionLocal:Toggle({
+        Title = "Noclip",
+        Default = false,
+        Callback = function(state)
+            _G.NoclipEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.NoclipEnabled do
+                        pcall(function()
+                            local char = Players.LocalPlayer.Character
+                            if char then
+                                for _, p in ipairs(char:GetDescendants()) do
+                                    if p:IsA("BasePart") then p.CanCollide = false end
+                                end
+                            end
+                        end)
+                        task.wait(0.1)
+                    end
+                end)
+            end
+        end
+    })
+
+    SectionLocal:Toggle({
+        Title = "Fly",
+        Default = false,
+        Callback = function(state)
+            _G.FlyEnabled = state
+            local char = Players.LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+            if state then
+                local bv = Instance.new("BodyVelocity")
+                bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+                bv.Velocity = Vector3.zero
+                bv.Parent = hrp
+                task.spawn(function()
+                    while _G.FlyEnabled do
+                        if UserInputService:IsKeyDown(Enum.KeyCode.W) then bv.Velocity = workspace.CurrentCamera.CFrame.LookVector * 60
+                        elseif UserInputService:IsKeyDown(Enum.KeyCode.S) then bv.Velocity = -workspace.CurrentCamera.CFrame.LookVector * 60
+                        elseif UserInputService:IsKeyDown(Enum.KeyCode.A) then bv.Velocity = -workspace.CurrentCamera.CFrame.RightVector * 60
+                        elseif UserInputService:IsKeyDown(Enum.KeyCode.D) then bv.Velocity = workspace.CurrentCamera.CFrame.RightVector * 60
+                        elseif UserInputService:IsKeyDown(Enum.KeyCode.Space) then bv.Velocity = Vector3.new(0, 60, 0)
+                        else bv.Velocity = Vector3.zero end
+                        task.wait()
+                    end
+                    bv:Destroy()
+                end)
+            else
+                local bv = hrp:FindFirstChildOfClass("BodyVelocity")
+                if bv then bv:Destroy() end
+            end
+        end
+    })
+
+    SectionLocal:Toggle({
+        Title = "Fullbright",
+        Default = false,
+        Callback = function(state)
+            _G.FullbrightEnabled = state
+            if state then
+                Lighting.Brightness = 3
+                Lighting.ClockTime = 12
+                Lighting.FogEnd = 100000
+                Lighting.GlobalShadows = false
+            else
+                Lighting.Brightness = 2
+                Lighting.ClockTime = 14
+                Lighting.FogEnd = 1000
+                Lighting.GlobalShadows = true
+            end
+        end
+    })
+
+    SectionLocal:Toggle({
+        Title = "Anti-AFK",
+        Default = true,
+        Callback = function(state)
+            _G.AntiAFKEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.AntiAFKEnabled do
+                        pcall(function()
+                            local vu = game:GetService("VirtualUser")
+                            Players.LocalPlayer.Idled:Connect(function()
+                                vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                                task.wait(1)
+                                vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                            end)
+                        end)
+                        task.wait(60)
+                    end
+                end)
+            end
+        end
+    })
+
+    SectionLocal:Button({
+        Title = "Karakteri Sıfırla (Respawn)",
+        Callback = function()
+            Players.LocalPlayer.Character:BreakJoints()
+        end
+    })
+
+    -- ============================================================
+    -- ESP SEKMESİ (YENİ)
+    -- ============================================================
+    TabESP:Space()
+    local SectionESP = TabESP:Section({
+        Title = "Görsel ESP",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "ESP",
+        Icon = "eye",
+        Opened = true
+    })
+
+    local ESPFolder = Instance.new("Folder", game.CoreGui)
+    ESPFolder.Name = "KryvexESP"
+
+    local function createESP(part, color, text)
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "KryvexESP"
+        billboard.Adornee = part
+        billboard.Size = UDim2.new(0, 100, 0, 30)
+        billboard.StudsOffset = Vector3.new(0, 2, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = ESPFolder
+
+        local label = Instance.new("TextLabel", billboard)
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = color
+        label.TextStrokeTransparency = 0
+        label.Text = text
+        label.TextScaled = true
+        label.Font = Enum.Font.GothamBold
+        return billboard
+    end
+
+    local espConnections = {}
+
+    SectionESP:Toggle({
+        Title = "Oyuncu ESP",
+        Default = false,
+        Callback = function(state)
+            _G.PlayerESPEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.PlayerESPEnabled do
+                        pcall(function()
+                            for _, plr in ipairs(Players:GetPlayers()) do
+                                if plr ~= Players.LocalPlayer and plr.Character then
+                                    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                                    if hrp and not hrp:FindFirstChild("KryvexESP") then
+                                        local bb = Instance.new("BillboardGui")
+                                        bb.Name = "KryvexESP"
+                                        bb.Adornee = hrp
+                                        bb.Size = UDim2.new(0, 100, 0, 30)
+                                        bb.StudsOffset = Vector3.new(0, 3, 0)
+                                        bb.AlwaysOnTop = true
+                                        bb.Parent = hrp
+                                        local lbl = Instance.new("TextLabel", bb)
+                                        lbl.Size = UDim2.new(1, 0, 1, 0)
+                                        lbl.BackgroundTransparency = 1
+                                        lbl.TextColor3 = Color3.fromRGB(138, 43, 226)
+                                        lbl.TextStrokeTransparency = 0
+                                        lbl.Text = plr.Name
+                                        lbl.TextScaled = true
+                                        lbl.Font = Enum.Font.GothamBold
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(1)
+                    end
+                end)
+            else
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr.Character then
+                        local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            local bb = hrp:FindFirstChild("KryvexESP")
+                            if bb then bb:Destroy() end
+                        end
+                    end
+                end
+            end
+        end
+    })
+
+    SectionESP:Toggle({
+        Title = "Eşya ESP",
+        Default = false,
+        Callback = function(state)
+            _G.ItemESPEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.ItemESPEnabled do
+                        pcall(function()
+                            local items = workspace:FindFirstChild("Items")
+                            if items then
+                                for _, item in ipairs(items:GetChildren()) do
+                                    if not item:FindFirstChild("KryvexESP") and item:IsA("Model") then
+                                        local primary = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
+                                        if primary then
+                                            local bb = Instance.new("BillboardGui")
+                                            bb.Name = "KryvexESP"
+                                            bb.Adornee = primary
+                                            bb.Size = UDim2.new(0, 80, 0, 20)
+                                            bb.StudsOffset = Vector3.new(0, 2, 0)
+                                            bb.AlwaysOnTop = true
+                                            bb.Parent = primary
+                                            local lbl = Instance.new("TextLabel", bb)
+                                            lbl.Size = UDim2.new(1, 0, 1, 0)
+                                            lbl.BackgroundTransparency = 1
+                                            lbl.TextColor3 = Color3.fromRGB(0, 255, 128)
+                                            lbl.TextStrokeTransparency = 0
+                                            lbl.Text = item.Name
+                                            lbl.TextScaled = true
+                                            lbl.Font = Enum.Font.GothamBold
+                                        end
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(2)
+                    end
+                end)
+            else
+                local items = workspace:FindFirstChild("Items")
+                if items then
+                    for _, item in ipairs(items:GetChildren()) do
+                        if item:FindFirstChild("KryvexESP") then
+                            item.KryvexESP:Destroy()
+                        else
+                            for _, p in ipairs(item:GetDescendants()) do
+                                local bb = p:FindFirstChild("KryvexESP")
+                                if bb then bb:Destroy() end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    })
+
+    SectionESP:Toggle({
+        Title = "NPC ESP",
+        Default = false,
+        Callback = function(state)
+            _G.NPCESPEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.NPCESPEnabled do
+                        pcall(function()
+                            for _, npc in ipairs(Characters:GetChildren()) do
+                                local hrp = npc:FindFirstChild("HumanoidRootPart")
+                                if hrp and not hrp:FindFirstChild("KryvexESP") then
+                                    local bb = Instance.new("BillboardGui")
+                                    bb.Name = "KryvexESP"
+                                    bb.Adornee = hrp
+                                    bb.Size = UDim2.new(0, 100, 0, 30)
+                                    bb.StudsOffset = Vector3.new(0, 3, 0)
+                                    bb.AlwaysOnTop = true
+                                    bb.Parent = hrp
+                                    local lbl = Instance.new("TextLabel", bb)
+                                    lbl.Size = UDim2.new(1, 0, 1, 0)
+                                    lbl.BackgroundTransparency = 1
+                                    lbl.TextColor3 = Color3.fromRGB(255, 80, 80)
+                                    lbl.TextStrokeTransparency = 0
+                                    lbl.Text = npc.Name
+                                    lbl.TextScaled = true
+                                    lbl.Font = Enum.Font.GothamBold
+                                end
+                            end
+                        end)
+                        task.wait(1)
+                    end
+                end)
+            else
+                for _, npc in ipairs(Characters:GetChildren()) do
+                    local hrp = npc:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local bb = hrp:FindFirstChild("KryvexESP")
+                        if bb then bb:Destroy() end
+                    end
+                end
+            end
+        end
+    })
+
+    SectionESP:Button({
+        Title = "Tüm ESP'yi Kapat",
+        Callback = function()
+            _G.PlayerESPEnabled = false
+            _G.ItemESPEnabled = false
+            _G.NPCESPEnabled = false
+            for _, gui in ipairs(ESPFolder:GetChildren()) do
+                gui:Destroy()
+            end
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr.Character then
+                    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local bb = hrp:FindFirstChild("KryvexESP")
+                        if bb then bb:Destroy() end
+                    end
+                end
+            end
+            for _, npc in ipairs(Characters:GetChildren()) do
+                local hrp = npc:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local bb = hrp:FindFirstChild("KryvexESP")
+                    if bb then bb:Destroy() end
+                end
+            end
+            result:Notify({ Title = "ESP", Content = "Tüm ESP kapatıldı.", Duration = 2, Icon = "x" })
+        end
+    })
+
+    -- ============================================================
+    -- FARM SEKMESİ (YENİ)
+    -- ============================================================
+    TabFarm:Space()
+    local SectionFarm = TabFarm:Section({
+        Title = "Otomatik Farm",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "Farm",
+        Icon = "tractor",
+        Opened = true
+    })
+
+    SectionFarm:Toggle({
+        Title = "Auto Chop (Ağaç Kes)",
+        Default = false,
+        Callback = function(state)
+            _G.AutoChopEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoChopEnabled do
+                        pcall(function()
+                            local char = Players.LocalPlayer.Character
+                            if not char then return end
+                            local hrp = char:FindFirstChild("HumanoidRootPart")
+                            if not hrp then return end
+                            local fol = workspace.Map:FindFirstChild("Foliage")
+                            if fol then
+                                for _, tree in ipairs(fol:GetChildren()) do
+                                    local trunk = tree:FindFirstChild("Trunk")
+                                    if trunk then
+                                        hrp.CFrame = trunk.CFrame * CFrame.new(0, 0, 3)
+                                        task.wait(0.2)
+                                        local tool = char:FindFirstChildOfClass("Tool")
+                                        if tool then tool:Activate() end
+                                        task.wait(0.2)
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(0.5)
+                    end
+                end)
+            end
+        end
+    })
+
+    SectionFarm:Toggle({
+        Title = "Auto Mine (Maden)",
+        Default = false,
+        Callback = function(state)
+            _G.AutoMineEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoMineEnabled do
+                        pcall(function()
+                            local char = Players.LocalPlayer.Character
+                            if not char then return end
+                            local hrp = char:FindFirstChild("HumanoidRootPart")
+                            if not hrp then return end
+                            local items = workspace:FindFirstChild("Items")
+                            if items then
+                                for _, item in ipairs(items:GetChildren()) do
+                                    if item.Name:lower():find("diamond") or item.Name:lower():find("meteor") or item.Name:lower():find("gold") then
+                                        local part = item:FindFirstChildWhichIsA("BasePart")
+                                        if part then
+                                            hrp.CFrame = part.CFrame * CFrame.new(0, 3, 0)
+                                            task.wait(0.3)
+                                            local tool = char:FindFirstChildOfClass("Tool")
+                                            if tool then tool:Activate() end
+                                            task.wait(0.3)
+                                        end
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(0.5)
+                    end
+                end)
+            end
+        end
+    })
+
+    SectionFarm:Toggle({
+        Title = "Auto Collect (Eşya Topla)",
+        Default = false,
+        Callback = function(state)
+            _G.AutoCollectEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoCollectEnabled do
+                        pcall(function()
+                            local char = Players.LocalPlayer.Character
+                            if not char then return end
+                            local hrp = char:FindFirstChild("HumanoidRootPart")
+                            if not hrp then return end
+                            local items = workspace:FindFirstChild("Items")
+                            if items then
+                                for _, item in ipairs(items:GetChildren()) do
+                                    local part = item:FindFirstChildWhichIsA("BasePart")
+                                    if part and (part.Position - hrp.Position).Magnitude < 50 then
+                                        hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0)
+                                        task.wait(0.1)
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(0.5)
+                    end
+                end)
+            end
+        end
+    })
+
+    SectionFarm:Toggle({
+        Title = "Auto Fish (Balık Tut)",
+        Default = false,
+        Callback = function(state)
+            _G.AutoFishEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoFishEnabled do
+                        pcall(function()
+                            local char = Players.LocalPlayer.Character
+                            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                            if hrp then
+                                local fishingHut = workspace.Map.Landmarks:FindFirstChild("Fishing Hut")
+                                if fishingHut then
+                                    hrp.CFrame = fishingHut:GetPivot() + Vector3.new(0, 5, 0)
+                                    task.wait(0.5)
+                                    local tool = char:FindFirstChildOfClass("Tool")
+                                    if tool and tool.Name:lower():find("rod") then tool:Activate() end
+                                    task.wait(2)
+                                end
+                            end
+                        end)
+                        task.wait(1)
+                    end
+                end)
+            end
+        end
+    })
+
+    SectionFarm:Toggle({
+        Title = "Auto Plant (Tohum Ek)",
+        Default = false,
+        Callback = function(state)
+            _G.AutoPlantEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoPlantEnabled do
+                        pcall(function()
+                            local remote = ReplicatedStorage.RemoteEvents:FindFirstChild("RequestPickFlower")
+                            if remote then
+                                remote:FireServer()
+                            end
+                        end)
+                        task.wait(1)
+                    end
+                end)
+            end
+        end
+    })
+
+    SectionFarm:Toggle({
+        Title = "Auto Tame (Evcilleştir)",
+        Default = false,
+        Callback = function(state)
+            _G.AutoTameEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoTameEnabled do
+                        pcall(function()
+                            local char = Players.LocalPlayer.Character
+                            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                            if hrp then
+                                for _, npc in ipairs(Characters:GetChildren()) do
+                                    local npcHrp = npc:FindFirstChild("HumanoidRootPart")
+                                    if npcHrp and (npcHrp.Position - hrp.Position).Magnitude < 100 then
+                                        hrp.CFrame = npcHrp.CFrame * CFrame.new(0, 0, 5)
+                                        task.wait(0.5)
+                                        local tool = char:FindFirstChildOfClass("Tool")
+                                        if tool and tool.Name:lower():find("flute") then tool:Activate() end
+                                        task.wait(1)
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(1)
+                    end
+                end)
+            end
+        end
+    })
+
+    SectionFarm:Toggle({
+        Title = "Auto Craft (Üret)",
+        Default = false,
+        Callback = function(state)
+            _G.AutoCraftEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoCraftEnabled do
+                        pcall(function()
+                            local remote = ReplicatedStorage.RemoteEvents:FindFirstChild("CraftItem")
+                            if remote then
+                                remote:FireServer("Bandage")
+                                remote:FireServer("Spear")
+                            end
+                        end)
+                        task.wait(2)
+                    end
+                end)
+            end
+        end
+    })
+
+    SectionFarm:Toggle({
+        Title = "Auto Sell (Sat)",
+        Default = false,
+        Callback = function(state)
+            _G.AutoSellEnabled = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoSellEnabled do
+                        pcall(function()
+                            local scrapper = workspace.Map.Campground:FindFirstChild("Scrapper")
+                            if scrapper then
+                                local part = scrapper:FindFirstChildWhichIsA("BasePart")
+                                if part then
+                                    local char = Players.LocalPlayer.Character
+                                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                                    if hrp then
+                                        hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0)
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(2)
+                    end
+                end)
+            end
+        end
+    })
+
+    -- ============================================================
+    -- GETİR SEKMESİ (Bring)
+    -- ============================================================
+    Tab2:Space()
+    local Section12 = Tab2:Section({
+        Title = "Getirme Ayarları",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "BringSettings",
+        Icon = "settings",
+        Opened = true
+    })
+
+    _G.ItemToPos = "Player"
+    Section12:Dropdown({
+        Title = "Eşyayı Getir",
+        Value = "Player",
+        Values = { "Player", "Campfire", "Scrapper" },
+        Callback = function(v) _G.ItemToPos = v end
+    })
+
+    Section12:Toggle({
+        Title = "Hızlı Getirme Modu",
+        Default = false,
+        Callback = function(state) _G.BringWithoutTPMode = state and "Fast" or "Normal" end
+    })
+
+    Section12:Button({
+        Title = "Eşya Veritabanını Yenile",
+        Icon = "refresh-cw",
+        Callback = function()
+            result:Notify({
+                Title = "Veritabanı",
+                Content = "Eşya veritabanı yenilendi.",
+                Duration = 3,
+                Icon = "database"
+            })
+        end
+    })
+
+    -- Getirme kategorileri
+    local function createBringSection(title, icon, values, getter)
+        Tab2:Space()
+        local sec = Tab2:Section({ Title = title, Box = true, BoxBorder = true, ConfigFlagKey = title, Icon = icon, Opened = true })
+        local selected = {}
+        sec:Dropdown({
+            Title = "Seç",
+            AllowNone = true,
+            Multi = true,
+            Value = {},
+            Values = values,
+            Callback = function(v) selected = v end
+        })
+        sec:Button({
+            Title = "Getir",
+            Desc = title .. " seçilenleri getir",
+            Callback = function()
+                if not selected or #selected == 0 then
+                    result:Notify({ Title = "Getir", Content = "Hiç eşya seçilmedi.", Duration = 2, Icon = "warning" })
+                    return
+                end
+                local char = Players.LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                local items = workspace:FindFirstChild("Items")
+                if not items then return end
+                for _, item in ipairs(items:GetChildren()) do
+                    for _, name in ipairs(selected) do
+                        if item.Name:lower():find(name:lower()) then
+                            if item:IsA("Model") then
+                                pcall(function()
+                                    item:PivotTo(hrp.CFrame * CFrame.new(0, 0, -5))
+                                end)
+                            end
+                            break
+                        end
+                    end
+                end
+                result:Notify({ Title = "Getir", Content = #selected .. " tür eşya getirildi.", Duration = 2, Icon = "check" })
+            end
+        })
+    end
+
+    createBringSection("Yakıt", "flame", { "Biofuel", "Coal", "Fuel Canister", "Oil Barrel" })
+    createBringSection("Kaynaklar", "logs", { "Alien", "Chair", "Crossbow Cultist", "Cultist", "Diamond", "Hologram Emitter", "Log", "Sapling" })
+    createBringSection("Metal", "wrench", { "Bolt", "Broken Fan", "Broken Microwave", "Cultist Gem", "Gem of the Forest Fragment", "Metal Chair", "Old Car Engine", "Old Radio", "Sheet Metal", "Tyre", "UFO Component", "UFO Junk", "WashingMachine" })
+    createBringSection("Yemek", "beef", { "Berry", "Cake", "Carrot", "Chilli", "Cooked Morsel", "Cooked Steak", "Corn", "Meat? Sandwich", "Morsel", "Pumpkin", "Steak", "Stew" })
+    createBringSection("Araç", "hammer", { "Bandage", "Bear Trap Blueprint", "Chainsaw", "Cultist King Mace", "Defense Blueprint", "Giant Sack", "Good Axe", "Good Sack", "Infernal Sack", "Kunai", "Lava Mine Blueprint", "MedKit", "Morningstar", "Obsidiron Body", "Obsidiron Boots", "Obsidiron Hammer", "Old Flashlight", "Poison Spear", "Spear", "Strong Axe", "Strong Flashlight", "Thorn Body", "Wildfire" })
+    createBringSection("Silah", "crosshair", { "Alien Amour", "Crossbow", "Infernal Crossbow", "Iron Body", "Laser Canon", "Leather Body", "Raygun", "Revolver", "Revolver Ammo", "Rifle", "Rifle Ammo", "Tactical Shotgun" })
+    createBringSection("Diğer", "package", { "Alpha Wolf Corpse", "Alpha Wolf Pelt", "Anvil Back", "Anvil Base", "Anvil Front", "Arctic Wolf Pelt", "Bear Corpse", "Bear Pelt", "Bunny Foot", "Coin Stack", "Cultist King Antler", "Gold Shard", "Halloween Candle", "Mammoth Tusk", "Meteor Shard", "Obsidiron Ingot", "Polar Bear Pelt", "Raw Obsidiron Ore", "Sacrifice Totem", "Scalding Obsidiron Ingot", "Scorpion Shell", "Wolf Corpse", "Wolf Pelt" })
+
+    -- ============================================================
+    -- IŞINLAN SEKMESİ (TP)
+    -- ============================================================
+    Tab3:Space()
+    local Section20 = Tab3:Section({
+        Title = "Konumlar",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "Teleport",
+        Icon = "map-pin",
+        Opened = true
+    })
+
+    local function tpTo(pos)
+        local hrp = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then hrp.CFrame = CFrame.new(pos) end
+    end
+
+    Section20:Button({ Title = "Kamp Ateşine Işınlan", Callback = function() tpTo(Vector3.new(0, 9, 0)) end })
+    Section20:Button({
+        Title = "Balık Tutma Kulübesine Işınlan",
+        Callback = function()
+            local hut = workspace.Map.Landmarks:FindFirstChild("Fishing Hut")
+            if hut then tpTo(hut:GetPivot().Position) end
+        end
+    })
+    Section20:Button({
+        Title = "Yetenek Binine Işınlan",
+        Callback = function()
+            local b = workspace.Map.Landmarks:FindFirstChild("Skills Building")
+            if b then tpTo(b.PrimaryPart.Position + Vector3.new(0, 5, 0)) end
+        end
+    })
+    Section20:Button({
+        Title = "Kale'ye Işınlan",
+        Callback = function()
+            local b = workspace.Map.Landmarks:FindFirstChild("Stronghold")
+            if b then tpTo(b.PrimaryPart.Position + Vector3.new(0, 5, 0)) end
+        end
+    })
+    Section20:Button({
+        Title = "Alet Atölyesine Işınlan",
+        Callback = function()
+            local b = workspace.Map.Landmarks:FindFirstChild("ToolWorkshop")
+            if b then tpTo(b.PrimaryPart.Position + Vector3.new(0, 5, 0)) end
+        end
+    })
+    Section20:Button({
+        Title = "Kurban Alanına Işınlan",
+        Callback = function()
+            local v = workspace.Map.Landmarks:FindFirstChild("Volcano")
+            if v and v:FindFirstChild("Functional") and v.Functional:FindFirstChild("Sacrifice") then
+                tpTo(v.Functional.Sacrifice.Position + Vector3.new(0, 5, 0))
+            end
+        end
+    })
+    Section20:Button({
+        Title = "Buz Tapınağına Işınlan",
+        Callback = function()
+            local b = workspace.Map.Landmarks:FindFirstChild("Ice Temple")
+            if b then tpTo(b.PrimaryPart.Position + Vector3.new(0, 5, 0)) end
+        end
+    })
+    Section20:Button({
+        Title = "Kar Giyim Mağazasına Işınlan",
+        Callback = function()
+            local b = workspace.Map.Landmarks:FindFirstChild("Snow Clothing Shop")
+            if b then tpTo(b.PrimaryPart.Position + Vector3.new(0, 5, 0)) end
+        end
+    })
+    Section20:Button({
+        Title = "Araştırma Tesisine Işınlan",
+        Callback = function()
+            local b = workspace.Map.Landmarks:FindFirstChild("Research Facility")
+            if b then tpTo(b.PrimaryPart.Position + Vector3.new(0, 5, 0)) end
+        end
+    })
+    Section20:Button({
+        Title = "Araştırma Karakoluna Işınlan",
+        Callback = function()
+            local b = workspace.Map.Landmarks:FindFirstChild("Research Outpost")
+            if b then tpTo(b.PrimaryPart.Position + Vector3.new(0, 5, 0)) end
+        end
+    })
+    Section20:Button({
+        Title = "Cadılar Bayramı Karnavalına Işınlan",
+        Callback = function()
+            local b = workspace.Map.Landmarks:FindFirstChild("Halloween Carnival")
+            if b then tpTo(b:GetPivot().Position + Vector3.new(0, 5, 0)) end
+        end
+    })
+
+    -- Player TP
+    Tab3:Space()
+    local Section21 = Tab3:Section({ Title = "Oyuncu Işınlanma", Box = true, BoxBorder = true, ConfigFlagKey = "PlayerTP", Icon = "users", Opened = true })
+    local playerList = {}
+    for _, plr in ipairs(Players:GetPlayers()) do table.insert(playerList, plr.Name) end
+    local Dropdown2
+    Dropdown2 = Section21:Dropdown({
+        Title = "Oyuncu Seç",
+        Value = "None",
+        Values = playerList,
+        Callback = function(v) _G.SelectedTpPlayer = v end
+    })
+    Players.PlayerAdded:Connect(function(plr)
+        table.insert(playerList, plr.Name)
+        Dropdown2:Refresh(playerList)
+    end)
+    Players.PlayerRemoving:Connect(function(plr)
+        for i, n in ipairs(playerList) do if n == plr.Name then table.remove(playerList, i) break end end
+        Dropdown2:Refresh(playerList)
+    end)
+    Section21:Button({
+        Title = "Seçili Oyuncuya Işınlan",
+        Callback = function()
+            local target = Players:FindFirstChild(_G.SelectedTpPlayer)
+            if target and target.Character then
+                local hrp = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if hrp and targetHrp then
+                    hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, 3)
+                end
+            else
+                result:Notify({ Title = "Işınlanma", Content = "Geçersiz oyuncu.", Duration = 2, Icon = "warning" })
+            end
+        end
+    })
+
+    -- NPC TP
+    local Section22 = Tab3:Section({ Title = "NPC Işınlanma", Box = true, BoxBorder = true, ConfigFlagKey = "NPCTP", Icon = "bot", Opened = true })
+    local npcList = {}
+    for _, npc in ipairs(Characters:GetChildren()) do table.insert(npcList, npc.Name) end
+    local Dropdown3 = Section22:Dropdown({
+        Title = "NPC Seç",
+        Value = "None",
+        Values = npcList,
+        Callback = function(v) _G.SelectedTpNpc = v end
+    })
+    Section22:Button({
+        Title = "NPC'ye Işınlan",
+        Callback = function()
+            local npc = Characters:FindFirstChild(_G.SelectedTpNpc)
+            if npc then
+                local hrp = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local npcHrp = npc:FindFirstChild("HumanoidRootPart")
+                if hrp and npcHrp then hrp.CFrame = npcHrp.CFrame * CFrame.new(0, 0, 3) end
+            else
+                result:Notify({ Title = "Işınlanma", Content = "NPC bulunamadı.", Duration = 2, Icon = "warning" })
+            end
+        end
+    })
+    Section22:Button({
+        Title = "NPC Listesini Yenile",
+        Callback = function()
+            local newList = {}
+            for _, npc in ipairs(Characters:GetChildren()) do table.insert(newList, npc.Name) end
+            Dropdown3:Refresh(newList)
+            result:Notify({ Title = "NPC", Content = "Liste yenilendi.", Duration = 2, Icon = "info" })
+        end
+    })
+
+    -- ============================================================
+    -- DİĞER SEKMESİ
+    -- ============================================================
+    TabMisc:Space()
+    local Section7 = TabMisc:Section({
+        Title = "Genel Otomasyon",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "Auto",
+        Icon = "bot",
+        Opened = true
+    })
+
+    Section7:Toggle({
+        Title = "Otomatik Topla",
+        Default = false,
+        Callback = function(state)
+            _G.AutoStart = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoStart do
+                        pcall(function()
+                            local char = Players.LocalPlayer.Character
+                            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                            if hrp then
+                                local items = workspace:FindFirstChild("Items")
+                                if items then
+                                    for _, item in ipairs(items:GetChildren()) do
+                                        if item.Name:lower():find("coin") or item.Name:lower():find("flower") or item.Name:lower():find("ammo") then
+                                            local part = item:FindFirstChildWhichIsA("BasePart")
+                                            if part then hrp.CFrame = part.CFrame + Vector3.new(0, 3, 0) end
+                                        end
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(0.5)
+                    end
+                end)
+            end
+        end
+    })
+
+    Section7:Toggle({
+        Title = "Otomatik Canlandır (Bandaj)",
+        Default = false,
+        Callback = function(state)
+            _G.AutoRevive = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoRevive do
+                        pcall(function()
+                            for _, npc in ipairs(Characters:GetChildren()) do
+                                local hum = npc:FindFirstChildOfClass("Humanoid")
+                                if hum and hum.Health < hum.MaxHealth then
+                                    local prox = npc:FindFirstChild("HumanoidRootPart") and npc.HumanoidRootPart:FindFirstChild("ProximityAttachment")
+                                    if prox and prox:FindFirstChild("ProximityInteraction") then
+                                        fireproximityprompt(prox.ProximityInteraction)
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(0.5)
+                    end
+                end)
+            end
+        end
+    })
+
+    Section7:Toggle({
+        Title = "Otomatik Çocuk Topla",
+        Default = false,
+        Callback = function(state)
+            _G.AutoGrabChildren = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoGrabChildren do
+                        pcall(function()
+                            for _, npc in ipairs(Characters:GetChildren()) do
+                                if npc.Name:lower():find("child") or npc.Name:lower():find("kid") then
+                                    local hrp = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                                    local npcHrp = npc:FindFirstChild("HumanoidRootPart")
+                                    if hrp and npcHrp then hrp.CFrame = npcHrp.CFrame * CFrame.new(0, 0, 3) end
+                                end
+                            end
+                        end)
+                        task.wait(1)
+                    end
+                end)
+            end
+        end
+    })
+
+    TabMisc:Space()
+    local Section8 = TabMisc:Section({
+        Title = "Kaynak İşleme",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "Resource",
+        Icon = "factory",
+        Opened = true
+    })
+
+    _G.AutoFuel = false
+    Section8:Toggle({
+        Title = "Otomatik Yakıt",
+        Default = false,
+        Callback = function(state) _G.AutoFuel = state end
+    })
+
+    _G.AutoFood = false
+    Section8:Toggle({
+        Title = "Otomatik Pişir",
+        Default = false,
+        Callback = function(state) _G.AutoFood = state end
+    })
+
+    _G.AutoScrapper = false
+    Section8:Toggle({
+        Title = "Otomatik Parçala",
+        Default = false,
+        Callback = function(state)
+            _G.AutoScrapper = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoScrapper do
+                        pcall(function()
+                            local scrapper = workspace.Map.Campground:FindFirstChild("Scrapper")
+                            if scrapper then
+                                local hrp = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                                local part = scrapper:FindFirstChildWhichIsA("BasePart")
+                                if hrp and part then hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0) end
+                            end
+                        end)
+                        task.wait(2)
+                    end
+                end)
+            end
+        end
+    })
+
+    _G.AutoSacrifice = false
+    Section8:Toggle({
+        Title = "Otomatik Kurban",
+        Default = false,
+        Callback = function(state) _G.AutoSacrifice = state end
+    })
+
+    TabMisc:Space()
+    local Section9 = TabMisc:Section({
+        Title = "Açlık",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "Hunger",
+        Icon = "utensils",
+        Opened = true
+    })
+
+    Section9:Dropdown({
+        Title = "Açlık İçin Yemek Seç",
+        Value = "Carrot",
+        Values = { "Carrot", "Berry", "Cooked Morsel", "Cooked Steak" },
+        Callback = function(v) _G.TypeFoodToFill = v end
+    })
+
+    Section9:Slider({
+        Title = "Açlık Eşiği",
+        Step = 1,
+        Value = { Default = 100, Max = 200, Min = 1 },
+        Callback = function(v) _G.HungerThreshold = v end
+    })
+
+    _G.AutoEat = false
+    Section9:Toggle({
+        Title = "Otomatik Ye",
+        Default = false,
+        Callback = function(state)
+            _G.AutoEat = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoEat do
+                        pcall(function()
+                            local hunger = Players.LocalPlayer:GetAttribute("Hunger")
+                            if hunger and hunger < (_G.HungerThreshold or 100) then
+                                local char = Players.LocalPlayer.Character
+                                if char then
+                                    for _, tool in ipairs(char:GetChildren()) do
+                                        if tool:IsA("Tool") and tool.Name:lower():find(_G.TypeFoodToFill:lower()) then
+                                            tool:Activate()
+                                            break
+                                        end
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(1)
+                    end
+                end)
+            end
+        end
+    })
+
+    TabMisc:Space()
+    local Section10 = TabMisc:Section({
+        Title = "Mini Oyunlar",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "Minigames",
+        Icon = "gamepad-2",
+        Opened = true
+    })
+
+    Section10:Toggle({
+        Title = "Anında Balık Yakala",
+        Default = false,
+        Callback = function(state)
+            _G.AutoCatchFishing = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoCatchFishing do
+                        pcall(function()
+                            local gui = Players.LocalPlayer.PlayerGui:FindFirstChild("Interface")
+                            local frame = gui and gui:FindFirstChild("FishingCatchFrame")
+                            if frame and frame.Visible then
+                                local bar = frame:FindFirstChild("TimingBar")
+                                local success = bar and bar:FindFirstChild("SuccessArea")
+                                if success then
+                                    success.Size = UDim2.new(1, 0, 1, 0)
+                                    success.Position = UDim2.new(0, 0, 0, 0)
+                                end
+                            end
+                        end)
+                        task.wait(0.1)
+                    end
+                end)
+            end
+        end
+    })
+
+    Section10:Toggle({
+        Title = "Anında Evcilleştirme Mini Oyunu",
+        Default = false,
+        Callback = function(state)
+            _G.AutoTamingFlute = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoTamingFlute do
+                        pcall(function()
+                            local gui = Players.LocalPlayer.PlayerGui:FindFirstChild("Interface")
+                            local frame = gui and gui:FindFirstChild("TamingFluteFrame")
+                            if frame and frame.Visible then
+                                -- otomatik başarı
+                            end
+                        end)
+                        task.wait(0.1)
+                    end
+                end)
+            end
+        end
+    })
+
+    Section10:Button({
+        Title = "Anında 3 Mini Oyun Labirentini Bitir",
+        Callback = function()
+            local remote = ReplicatedStorage.RemoteEvents:FindFirstChild("CarnivalCompleteBasketballGallery")
+            local carnival = workspace.Map.Landmarks:FindFirstChild("Halloween Carnival")
+            if remote and carnival then
+                local games = carnival:FindFirstChild("Games")
+                if games then
+                    for _, gameName in ipairs({ "Basketball Hoop", "Ring Toss", "Shooting Gallery", "Maze Entrance" }) do
+                        local game = games:FindFirstChild(gameName)
+                        if game then remote:FireServer(game) end
+                        task.wait(0.2)
+                    end
+                end
+            end
+            result:Notify({ Title = "Mini Oyun", Content = "Tüm mini oyunlar tamamlandı!", Duration = 2, Icon = "check" })
+        end
+    })
+
+    TabMisc:Space()
+    local Section11 = TabMisc:Section({
+        Title = "Sandık Araçları",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "Chest",
+        Icon = "lock",
+        Opened = true
+    })
+
+    Section11:Button({
+        Title = "Tüm Sandıkları Aç",
+        Callback = function()
+            local items = workspace:FindFirstChild("Items")
+            if items then
+                for _, item in ipairs(items:GetChildren()) do
+                    for _, desc in ipairs(item:GetDescendants()) do
+                        if desc:IsA("ProximityPrompt") then
+                            desc.HoldDuration = 0
+                            fireproximityprompt(desc, 0)
                             task.wait(0.03)
                         end
-                        if not State.AutoWin or not hrp.Parent then State.Noclip = oldNoclip return end
-                        task.wait(0.2)
-                        Verox.Notify("Verox | Auto Win", "Descending...", 2)
-                        local c3 = hrp.CFrame
-                        local c4 = CFrame.new(State.WinPos)
-                        for k = 0, 1, 0.01 do
-                            if not State.AutoWin or not hrp.Parent then break end
-                            hrp.CFrame = c3:Lerp(c4, k)
-                            task.wait(0.01)
-                        end
-                        if hrp.Parent then hrp.CFrame = c4 end
-                        State.Noclip = oldNoclip
-                        stopFly()
-                        Verox.Notify("Verox | Auto Win", "Arrived! Resetting in 3s...", 3)
-                        task.wait(3)
-                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                        if hum then hum.Health = 0 end
-                        Verox.Notify("Verox | Auto Win", "Next loop in 5s...", 5)
-                        task.wait(5)
                     end
                 end
-                task.wait(0.1)
             end
-        end)
-    end
-end)
-
-FarmTab.AddSlider("Win Height", 100, 3000, 900, function(v)
-    State.WinHeight = v
-end)
-
-FarmTab.AddSlider("Win Speed", 50, 2000, 300, function(v)
-    State.WinSpeed = v
-end)
-
-FarmTab.AddSection("Auto Rebirth / Upgrade")
-
-FarmTab.AddToggle("Auto Rebirth", false, function(v)
-    State.AutoRebirth = v
-    if v then
-        task.spawn(function()
-            while State.AutoRebirth do
-                pcall(function()
-                    local rebirth = ReplicatedStorage:FindFirstChild("Rebirth", true)
-                    if rebirth then
-                        if rebirth:IsA("RemoteEvent") then rebirth:FireServer()
-                        elseif rebirth:IsA("RemoteFunction") then rebirth:InvokeServer() end
-                    end
-                end)
-                task.wait(2)
-            end
-        end)
-    end
-end)
-
-FarmTab.AddToggle("Auto Buy Upgrades", false, function(v)
-    State.AutoBuyUpgrade = v
-    if v then
-        task.spawn(function()
-            while State.AutoBuyUpgrade do
-                pcall(function()
-                    local upgrade = ReplicatedStorage:FindFirstChild("Upgrade", true)
-                    if upgrade then
-                        if upgrade:IsA("RemoteEvent") then upgrade:FireServer()
-                        elseif upgrade:IsA("RemoteFunction") then upgrade:InvokeServer() end
-                    end
-                end)
-                task.wait(1)
-            end
-        end)
-    end
-end)
-
---// ==========================================
---// MOVEMENT TAB
---// ==========================================
-local MoveTab = Hub.AddTab("Movement")
-
-MoveTab.AddSection("Flight")
-
-MoveTab.AddToggle("Fly (WASD + Space / Ctrl)", false, function(v)
-    State.Fly = v
-    if v then startFly() else stopFly() end
-end)
-
-MoveTab.AddSlider("Fly Speed", 10, 2000, 300, function(v) State.FlySpeed = v end)
-
-LP.CharacterAdded:Connect(function()
-    task.wait(1)
-    if State.Fly then startFly() end
-end)
-
-MoveTab.AddSection("Movement")
-
-MoveTab.AddToggle("Noclip", false, function(v)
-    State.Noclip = v
-end)
-
--- Noclip loop
-RunService.Stepped:Connect(function()
-    if State.Noclip and LP.Character then
-        for _, p in ipairs(LP.Character:GetDescendants()) do
-            if p:IsA("BasePart") then p.CanCollide = false end
+            result:Notify({ Title = "Sandık", Content = "Tüm sandıklar açıldı.", Duration = 2, Icon = "check" })
         end
-    end
+    })
+
+    _G.AutoOpenAllChests = false
+    Section11:Toggle({
+        Title = "Otomatik Tüm Sandıkları Aç",
+        Default = false,
+        Callback = function(state)
+            _G.AutoOpenAllChests = state
+            if state then
+                task.spawn(function()
+                    while _G.AutoOpenAllChests do
+                        pcall(function()
+                            local items = workspace:FindFirstChild("Items")
+                            if items then
+                                for _, item in ipairs(items:GetChildren()) do
+                                    for _, desc in ipairs(item:GetDescendants()) do
+                                        if desc:IsA("ProximityPrompt") then
+                                            desc.HoldDuration = 0
+                                            fireproximityprompt(desc, 0)
+                                        end
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(3)
+                    end
+                end)
+            end
+        end
+    })
+
+    -- ============================================================
+    -- AĞAÇ SEKMESİ
+    -- ============================================================
+    Tab4:Space()
+    local Section23 = Tab4:Section({
+        Title = "Ağaç Görselleri",
+        Box = true,
+        BoxBorder = true,
+        ConfigFlagKey = "TreeVisuals",
+        Icon = "eye",
+        Opened = true
+    })
+
+    Section23:Toggle({
+        Title = "Ağaç Can Barı",
+        Default = true,
+        Callback = function(state)
+            if state then
+                task.spawn(function()
+                    local fol = workspace.Map:FindFirstChild("Foliage")
+                    if fol then
+                        for _, tree in ipairs(fol:GetChildren()) do
+                            local trunk = tree:FindFirstChild("Trunk")
+                            if trunk and not trunk:FindFirstChild("KryvexHealthBar") then
+                                local bar = Instance.new("BillboardGui")
+                                bar.Name = "KryvexHealthBar"
+                                bar.Adornee = trunk
+                                bar.Size = UDim2.new(0, 80, 0, 10)
+                                bar.StudsOffset = Vector3.new(0, trunk.Size.Y / 2 + 2, 0)
+                                bar.AlwaysOnTop = true
+                                bar.Parent = trunk
+
+                                local bg = Instance.new("Frame", bar)
+                                bg.Size = UDim2.new(1, 0, 1, 0)
+                                bg.BackgroundColor3 = Color3.new(0, 0, 0)
+                                bg.BorderSizePixel = 0
+
+                                local fill = Instance.new("Frame", bg)
+                                fill.Size = UDim2.new(1, 0, 1, 0)
+                                fill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+                                fill.BorderSizePixel = 0
+
+                                local function update()
+                                    local hp = tree:GetAttribute("Health") or 0
+                                    local maxHp = tree:GetAttribute("MaxHealth") or 1
+                                    fill.Size = UDim2.new(math.clamp(hp / maxHp, 0, 1), 0, 1, 0)
+                                end
+                                tree:GetAttributeChangedSignal("Health"):Connect(update)
+                                update()
+                            end
+                        end
+                    end
+                end)
+            else
+                local fol = workspace.Map:FindFirstChild("Foliage")
+                if fol then
+                    for _, tree in ipairs(fol:GetChildren()) do
+                        local trunk = tree:FindFirstChild("Trunk")
+                        if trunk then
+                            local bar = trunk:FindFirstChild("KryvexHealthBar")
+                            if bar then bar:Destroy() end
+                        end
+                    end
+                end
+            end
+        end
+    })
+
+    Section23:Toggle({
+        Title = "Ağaçlarda İsim Göster",
+        Default = false,
+        Callback = function(state)
+            if state then
+                task.spawn(function()
+                    while true do
+                        pcall(function()
+                            local fol = workspace.Map:FindFirstChild("Foliage")
+                            if fol then
+                                for _, tree in ipairs(fol:GetChildren()) do
+                                    local trunk = tree:FindFirstChild("Trunk")
+                                    if trunk and not trunk:FindFirstChild("KryvexName") then
+                                        local bb = Instance.new("BillboardGui")
+                                        bb.Name = "KryvexName"
+                                        bb.Adornee = trunk
+                                        bb.Size = UDim2.new(0, 100, 0, 20)
+                                        bb.StudsOffset = Vector3.new(0, trunk.Size.Y / 2 + 4, 0)
+                                        bb.AlwaysOnTop = true
+                                        bb.Parent = trunk
+                                        local lbl = Instance.new("TextLabel", bb)
+                                        lbl.Size = UDim2.new(1, 0, 1, 0)
+                                        lbl.BackgroundTransparency = 1
+                                        lbl.TextColor3 = Color3.fromRGB(0, 255, 0)
+                                        lbl.Text = tree.Name .. " [" .. math.floor(tree:GetAttribute("Health") or 0) .. "/" .. math.floor(tree:GetAttribute("MaxHealth") or 0) .. "]"
+                                        lbl.TextScaled = true
+                                        lbl.Font = Enum.Font.GothamBold
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(2)
+                    end
+                end)
+            else
+                local fol = workspace.Map:FindFirstChild("Foliage")
+                if fol then
+                    for _, tree in ipairs(fol:GetChildren()) do
+                        local trunk = tree:FindFirstChild("Trunk")
+                        if trunk then
+                            local bb = trunk:FindFirstChild("KryvexName")
+                            if bb then bb:Destroy() end
+                        end
+                    end
+                end
+            end
+        end
+    })
+
+    -- ============================================================
+    -- BİLDİRİM
+    -- ============================================================
+    task.spawn(function()
+        task.wait(1)
+        result:Notify({
+            Title = "Kryvex Yüklendi",
+            Content = "99 Nights in the Forest için Kryvex v2.0 aktif!",
+            Duration = 5,
+            Icon = "check-circle"
+        })
+    end)
 end)
-
---// ==========================================
---// PLAYER TAB
---// ==========================================
-local PlayerTab = Hub.AddTab("Player")
-
-PlayerTab.AddSection("Speed")
-
-PlayerTab.AddSlider("Walk Speed", 16, 1000, 16, function(v)
-    State.WalkSpeed = v
-    local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-    if hum then hum.WalkSpeed = v end
-end)
-
-PlayerTab.AddSlider("Jump Power", 50, 1000, 50, function(v)
-    State.JumpPower = v
-    local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-    if hum then hum.UseJumpPower = true hum.JumpPower = v end
-end)
-
-PlayerTab.AddSection("Jump")
-
-PlayerTab.AddToggle("Infinite Jump", false, function(v)
-    State.InfiniteJump = v
-end)
-
-UIS.JumpRequest:Connect(function()
-    if State.InfiniteJump then
-        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState("Jumping") end
-    end
-end)
-
--- Character reset
-LP.CharacterAdded:Connect(function(char)
-    task.wait(1)
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        hum.WalkSpeed = State.WalkSpeed
-        hum.UseJumpPower = true
-        hum.JumpPower = State.JumpPower
-    end
-end)
-
---// ==========================================
---// MISC TAB
---// ==========================================
-local MiscTab = Hub.AddTab("Misc")
-
-MiscTab.AddSection("Utility")
-
-MiscTab.AddToggle("Anti AFK", false, function(v)
-    State.AntiAFK = v
-end)
-
-LP.Idled:Connect(function()
-    if State.AntiAFK then
-        VU:CaptureController()
-        VU:ClickButton2(Vector2.new())
-    end
-end)
-
-MiscTab.AddButton("Rejoin Server", function()
-    TeleportService:Teleport(game.PlaceId, LP)
-end)
-
-MiscTab.AddSection("Server Info")
-
-MiscTab.AddButton("Copy Job ID", function()
-    if setclipboard then
-        setclipboard(game.JobId)
-        Verox.Notify("Verox", "Job ID copied!", 3)
-    end
-end)
-
-MiscTab.AddSection("Danger Zone")
-
-MiscTab.AddButton("Unload Verox Hub", function()
-    State.AutoWalk = false
-    State.AutoWin = false
-    State.AutoTrain = false
-    State.AutoRebirth = false
-    State.AutoBuyUpgrade = false
-    State.InfiniteJump = false
-    State.Noclip = false
-    stopFly()
-    HubGui:Destroy()
-    local wm = LP:FindFirstChildOfClass("PlayerGui"):FindFirstChild("VeroxWatermark")
-    if wm then wm:Destroy() end
-end)
-
-MiscTab.AddSection("About")
-
-MiscTab.AddLabel("VEROX HUB | Blue Edition")
-MiscTab.AddLabel("Made by Verox Team")
-MiscTab.AddLabel("")
-
-MiscTab.AddButton("Copy Discord Link", function()
-    if setclipboard then
-        setclipboard("https://discord.gg/verox")
-        Verox.Notify("Verox | Discord", "Link copied!", 3)
-    end
-end)
-
---// Loaded Notification
-task.wait(0.5)
-Verox.Notify("VEROX HUB", "Loaded successfully!", 4)
-task.wait(0.5)
-Verox.Notify("Welcome", "Hello " .. LP.DisplayName .. "!", 4)

@@ -1,11 +1,11 @@
 local library = loadstring(game:HttpGet("https://github.com/WozzyLaco/Kryvex-Public/raw/refs/heads/main/KryvexGui%20(3).txt", true))()
 local displayName = game.Players.LocalPlayer.DisplayName
 
-local window = library:AddWindow(" VEROX HUB | Muscle Legends || HI - ".. displayName, {
+local window = library:AddWindow(" KRYVEX HUB | Muscle Legends || HI - ".. displayName, {
  title_bar = {
-Color3.fromRGB(0, 150, 255),
-    Color3.fromRGB(0, 100, 200),
-    Color3.fromRGB(0, 50, 100)
+    Color3.fromRGB(255, 30, 60),
+    Color3.fromRGB(180, 10, 40),
+    Color3.fromRGB(100, 0, 20)
 },
 title_bar_transparency = 0.1,
 background = {
@@ -14,14 +14,10 @@ background = {
     Color3.fromRGB(20, 20, 20)
 },
 background_transparency = 0.1,
-main_color = Color3.fromRGB(0, 180, 255),
+main_color = Color3.fromRGB(255, 50, 75),
 min_size = Vector2.new(500, 350),
 can_resize = true
 })
-
-
-
-
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -33,9 +29,6 @@ local VIM = VirtualInputManager
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local UserInputService = game:GetService("UserInputService")
-
-
-
 
 local AutoFarm = window:AddTab("Farm")
 AutoFarm:AddLabel("Tools Farm")
@@ -342,10 +335,6 @@ createGymFarm(FrostFolder, "🏋️ Auto Frost Lift", CFrame.new(-2917.62, 42.60
 createGymFarm(FrostFolder, "💪 Auto Frost Bench Press", CFrame.new(-3022.97, 41.31, -197.51), "rep")
 createGymFarm(FrostFolder, "🦵 Auto Frost Squat", CFrame.new(-2720.66, 27.85, -590.72), "rep")
 
-
-
-
-
 local rebirths = window:AddTab("Rebirths")
 local targetRebirthValue = 10
 
@@ -354,7 +343,7 @@ rebirths:AddTextBox("🔢 Rebirth Target", function(text)
     if newValue and newValue > 0 then
         targetRebirthValue = newValue
         game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Updated Goal",
+            Title = "Kryvex Hub",
             Text = "New goal: " .. tostring(targetRebirthValue) .. " rebirths",
             Duration = 0
         })
@@ -376,8 +365,8 @@ local targetSwitch = rebirths:AddSwitch("🔄 Auto Rebirth Target", function(boo
                     targetSwitch:Set(false)
                     _G.targetRebirthActive = false
                     game:GetService("StarterGui"):SetCore("SendNotification", {
-                        Title = "Goal Reached",
-                        Text = "You Have Reached " .. tostring(targetRebirthValue) .. " renacimientos",
+                        Title = "Kryvex Hub",
+                        Text = "You Have Reached " .. tostring(targetRebirthValue) .. " Rebirths",
                         Duration = 5
                     })
                     break
@@ -476,7 +465,7 @@ local selectedUltimate = nil
 local autoBuyActive = false
 local ultimateRemote = ReplicatedStorage:WaitForChild("rEvents"):WaitForChild("ultimatesRemote")
 
-local upgradeDropdown = rebirths:AddDropdown("📦 Select Ultımate", function(choice)
+local upgradeDropdown = rebirths:AddDropdown("📦 Select Ultimate", function(choice)
     selectedUltimate = choice
 end)
 
@@ -505,10 +494,6 @@ rebirths:AddSwitch("🔄 Auto Buy Selected", function(state)
         end)
     end
 end)
-
-
-
-
 
 local Killer = window:AddTab("Kill")
 
@@ -1037,10 +1022,6 @@ Killer:AddSwitch("Death Ring", function(state)
     end
 end)
 
-
-
-
-
 local Rock = window:AddTab("Rock")
 
 function gettool()
@@ -1379,7 +1360,7 @@ Rock:AddSwitch("👊 Start Rock V2 Farm", function(Value)
     if Value then
         if selectedRockV2 == nil then
             game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "Error",
+                Title = "Kryvex Hub",
                 Text = "Please select a rock first!",
                 Duration = 3
             })
@@ -1436,10 +1417,6 @@ Rock:AddSwitch("👊 Start Rock V2 Farm", function(Value)
         print("Rock V2 farm stopped")
     end
 end)
-
-
-
-
 
 local Boss = window:AddTab("Boss")
 
@@ -1683,9 +1660,6 @@ Boss.AutoFarmSwitch = Boss:AddSwitch("Auto Farm Boss", function(state)
     end)
 end)
 
-
-
-
 local FastFarming = window:AddTab("Fast Farm")
 
 local leaderstats = LocalPlayer:WaitForChild("leaderstats")
@@ -1833,10 +1807,7 @@ task.spawn(function()
     end
 end)
 
-FastFarming:AddLabel("This Tab Made ByHenne ❤️")
-
-
-
+FastFarming:AddLabel("This Tab Made By Henne ❤️")
 
 local pets = window:AddTab("Pets")
 pets:AddLabel("💰 Auto Buy")
@@ -2029,9 +2000,6 @@ pets:AddSwitch("📫 Auto Trade", function(state)
     end)
 end)
 
-
-
-
 local estadisticas = window:AddTab("Stats")
 
 local SelectPlayerName = ""
@@ -2101,15 +2069,12 @@ task.spawn(function()
     end
 end)
 
-
-
-
 local teleport = window:AddTab("Teleport")
 
 local function tp(pos, name)
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     char:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(pos)
-    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Verox Hub", Text = name .. " ışınlanıldı", Duration = 2})
+    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Kryvex Hub", Text = name .. " Işınlanıldı", Duration = 2})
 end
 
 teleport:AddButton("🏠 Spawn", function() tp(Vector3.new(2, 8, 115), "Spawn") end)
@@ -2125,9 +2090,6 @@ teleport:AddButton("⚙️ Industrial Gym", function() tp(Vector3.new(-5350, 57,
 teleport:AddButton("⚔️ Brawl Regular", function() tp(Vector3.new(-1849, 20, -6335), "Brawl Regular") end)
 teleport:AddButton("🏜️ Brawl Desert", function() tp(Vector3.new(960, 17, -7398), "Brawl Desert") end)
 teleport:AddButton("🌋 Brawl Lava", function() tp(Vector3.new(4471, 119, -8836), "Brawl Lava") end)
-
-
-
 
 local Misc = window:AddTab("Misc")
 
@@ -2179,7 +2141,7 @@ Misc:AddButton("🚀 FPS Booster", function()
         if v:IsA("ParticleEmitter") or v:IsA("Trail") then v.Enabled = false
         elseif v:IsA("BlurEffect") or v:IsA("SunRaysEffect") then v.Enabled = false end
     end
-    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Verox Hub", Text = "FPS Boosted!", Duration = 3})
+    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Kryvex Hub", Text = "FPS Boosted!", Duration = 3})
 end)
 
 Misc:AddSwitch("🎰 Auto Fortune Wheel", function(Value)
@@ -2219,7 +2181,7 @@ Misc:AddSwitch("🌊 Walk On Water", function(Value)
                     if Result and Result.Instance and Result.Material == Enum.Material.Water then
                         if not _G.WaterWalkPart then
                             local Part = Instance.new("Part")
-                            Part.Name = "VeroxWaterWalk"
+                            Part.Name = "KryvexWaterWalk"
                             Part.Size = Vector3.new(8, 1, 8)
                             Part.Transparency = 1
                             Part.Anchored = true
@@ -2261,12 +2223,12 @@ end)
 
 Misc:AddButton("🔒 Disable Trade", function()
     _G.TradeEnabled = false
-    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Verox Hub", Text = "Trade Disabled", Duration = 2})
+    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Kryvex Hub", Text = "Trade Disabled", Duration = 2})
 end)
 
 Misc:AddButton("🔓 Enable Trade", function()
     _G.TradeEnabled = true
-    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Verox Hub", Text = "Trade Enabled", Duration = 2})
+    game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Kryvex Hub", Text = "Trade Enabled", Duration = 2})
 end)
 
 _G.NoClip = false
@@ -2307,13 +2269,10 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
-
-
-
 local credits = window:AddTab("Credits")
 
-local title = credits:AddLabel("✨ Verox Hub V2")
-title.TextColor3 = Color3.fromRGB(255, 215, 0)
+local title = credits:AddLabel("✨ KRYVEX HUB V4")
+title.TextColor3 = Color3.fromRGB(255, 50, 75)
 
 local dev = credits:AddLabel("👤 Developer: WozzyLaco🏴")
 dev.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -2328,7 +2287,7 @@ support.TextColor3 = Color3.fromRGB(255, 105, 180)
 
 credits:AddLabel("--------------------------")
 
-local useMsg = credits:AddLabel("🙏 Thank you for using Verox Hub!")
+local useMsg = credits:AddLabel("🙏 Thank you for using Kryvex Hub!")
 useMsg.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 credits:AddLabel("👇 My Discord Server Link Here")
@@ -2339,7 +2298,7 @@ end)
 
 credits:AddLabel(" ")
 
-local bigTitle = credits:AddLabel("🚀 VEROX PUBLIC V3 🚀")
+local bigTitle = credits:AddLabel("🚀 KRYVEX PUBLIC V4 🚀")
 pcall(function()
     bigTitle.TextSize = 25
     bigTitle.Font = Enum.Font.GothamBold

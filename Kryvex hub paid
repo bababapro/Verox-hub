@@ -1,23 +1,60 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local PASTEBIN_RAW_URL = "https://pastebin.com/raw/pbkBFCQt"
+
+local function checkWhitelist()
+    local success, response = pcall(function()
+        return game:HttpGet(PASTEBIN_RAW_URL)
+    end)
+
+    if not success or not response then
+        LocalPlayer:Kick("Whitelist check failed (Connection error).")
+        return false
+    end
+
+    for line in response:gmatch("[^\r\n]+") do
+        local entry = line:match("^%s*(.-)%s*$") -- Trim leading and trailing whitespace
+        if entry ~= "" then
+            if tostring(LocalPlayer.UserId) == entry or LocalPlayer.Name:lower() == entry:lower() then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+if checkWhitelist() then
+    -- Whitelisted: Put your main script or UI code here
+    print("Whitelist verified, welcome: " .. LocalPlayer.Name)
+else
+    LocalPlayer:Kick("You are not whitelisted for this script.")
+end
+
+
+
 local library = loadstring(game:HttpGet("https://github.com/WozzyLaco/Kryvex-Public/raw/refs/heads/main/KryvexGui%20(3).txt", true))()
 local displayName = game.Players.LocalPlayer.DisplayName
 
 local window = library:AddWindow(" Kryvex Paid | Muscle Legends || HI - ".. displayName, {
 title_bar = {
-    Color3.fromRGB(168, 50, 255),
-    Color3.fromRGB(115, 25, 195),
-    Color3.fromRGB(65, 10, 120)
+    Color3.fromRGB(115, 25, 175),
+    Color3.fromRGB(78, 12, 130),
+    Color3.fromRGB(45, 5, 82)
 },
-title_bar_transparency = 0.1,
+title_bar_transparency = 0.08,
 background = {
-    Color3.fromRGB(10, 6, 15),
-    Color3.fromRGB(18, 10, 26),
-    Color3.fromRGB(28, 16, 40)
+    Color3.fromRGB(16, 12, 22),
+    Color3.fromRGB(12, 9, 17),
+    Color3.fromRGB(8, 6, 12)
 },
-background_transparency = 0.1,
-main_color = Color3.fromRGB(155, 45, 245),
+background_transparency = 0.12,
+main_color = Color3.fromRGB(110, 32, 165),
 min_size = Vector2.new(500, 350),
 can_resize = true
 })
+
 
 
 local Players = game:GetService("Players")

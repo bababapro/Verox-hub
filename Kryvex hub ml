@@ -1,7 +1,7 @@
 local library = loadstring(game:HttpGet("https://github.com/WozzyLaco/Kryvex-Public/raw/refs/heads/main/KryvexGui%20(3).txt", true))()
 local displayName = game.Players.LocalPlayer.DisplayName
 
-local window = library:AddWindow(" KRYVEX HUB | Muscle Legends || HI - ".. displayName, {
+local window = library:AddWindow(" Kryvex Paid | Muscle Legends || HI - ".. displayName, {
  title_bar = {
     Color3.fromRGB(255, 30, 60),
     Color3.fromRGB(180, 10, 40),
@@ -1660,7 +1660,7 @@ Boss.AutoFarmSwitch = Boss:AddSwitch("Auto Farm Boss", function(state)
     end)
 end)
 
-local FastFarming = window:AddTab("Fast Farm")
+local FastFarming = window:AddTab("Fast Rebirth")
 
 local leaderstats = LocalPlayer:WaitForChild("leaderstats")
 local strengthStat = leaderstats:WaitForChild("Strength")
@@ -1725,89 +1725,148 @@ rebirthsStat:GetPropertyChangedSignal("Value"):Connect(function()
     end
 end)
 
-FastFarming:AddLabel("=============================================================")
+local FastFarming = window:AddTab("Fast Strength")
 
+-- 🔥 Fast Strength - MAXIMUM SPEED (0.01)
 FastFarming:AddLabel("💪 Fast Strength")
-local strStatus = FastFarming:AddLabel("Status: Inactive"); strStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
-local strRuntime = FastFarming:AddLabel("Runtime: 0d 0h 0m 0s")
-local strStats = FastFarming:AddLabel("Strength: " .. formatNumber(strengthStat.Value) .. " | Gained: 0")
-local strDura = FastFarming:AddLabel("Durability: " .. formatNumber(durabilityStat.Value) .. " | Gained: 0")
-local strPace = FastFarming:AddLabel("Strength: --/S | --/Min | --/Hour | --/Day | --/Week")
-local strAvg = FastFarming:AddLabel("Durability: --/S | --/Min | --/Hour | --/Day | --/Week")
+local strStatus = FastFarming:AddLabel("Status: Inactive")
+strStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
 
+local strRuntime = FastFarming:AddLabel("Runtime: 0d 0h 0m 0s")
+local strStats   = FastFarming:AddLabel("Strength: " .. formatNumber(strengthStat.Value) .. " | Gained: 0")
+local strDura    = FastFarming:AddLabel("Durability: " .. formatNumber(durabilityStat.Value) .. " | Gained: 0")
+local strPace    = FastFarming:AddLabel("Strength: --/S | --/Min | --/Hour | --/Day | --/Week")
+local strAvg     = FastFarming:AddLabel("Durability: --/S | --/Min | --/Hour | --/Day | --/Week")
+
+-- Variables
+local isStrengthActive = false
+local strengthGained = 0
+local durabilityGained = 0
+local lastStrength = strengthStat.Value
+local lastDurability = durabilityStat.Value
+local strengthStartTime = 0
+local strengthTotalTime = 0
+local repSpeed = 600 -- varsayılan (textbox ile değiştir)
+
+-- Reset
 FastFarming:AddButton("Reset Calcs (Strength)", function()
-    strengthGained = 0; lastStrength = strengthStat.Value
-    strengthTotalTime = 0; strengthStartTime = os.clock()
+    strengthGained = 0
+    durabilityGained = 0
+    lastStrength = strengthStat.Value
+    lastDurability = durabilityStat.Value
+    strengthTotalTime = 0
+    strengthStartTime = os.clock()
     strStats.Text = "Strength: " .. formatNumber(strengthStat.Value) .. " | Gained: 0"
-    strPace.Text = "Strength: --/S | --/Min | --/Hour | --/Day | --/Week"
+    strDura.Text  = "Durability: " .. formatNumber(durabilityStat.Value) .. " | Gained: 0"
+    strPace.Text  = "Strength: --/S | --/Min | --/Hour | --/Day | --/Week"
+    strAvg.Text   = "Durability: --/S | --/Min | --/Hour | --/Day | --/Week"
 end)
 
+-- Speed Input
 FastFarming:AddTextBox("...", function(inputText)
     local val = tonumber(inputText)
-    if val and val > 0 then repSpeed = math.clamp(math.floor(val), 1, 1100) end
-end, {placeholder = "Enter reps/s (e.g. 462)"})
+    if val and val > 0 then
+        repSpeed = math.clamp(math.floor(val), 1, 1500)
+    end
+end, {placeholder = "Enter reps/s (600-1200 recommended)"})
 
+-- 🔥 MAXIMUM SPEED TOGGLE
 FastFarming.FastStrengthToggle = FastFarming:AddSwitch("💪 Start Farm", function(state)
     isStrengthActive = state
     if state then
-        if isRebirthActive then rebToggle:Set(false) end
+        if isRebirthActive then
+            rebToggle:Set(false)
+        end
         strengthStartTime = os.clock()
-        strStatus.Text = "Status: Farming"; strStatus.TextColor3 = Color3.fromRGB(80, 255, 120)
+        strStatus.Text = "Status: Farming"
+        strStatus.TextColor3 = Color3.fromRGB(80, 255, 120)
+
         task.spawn(function()
             local tokens = 0
             local lastTick = os.clock()
+
             while isStrengthActive do
                 local now = os.clock()
                 local dt = now - lastTick
                 lastTick = now
-                tokens = math.min(24, tokens + repSpeed * dt)
+
+                -- Daha yüksek token kapasitesi + agresif birikim
+                tokens = math.min(48, tokens + repSpeed * dt)
+
+                -- Mümkün olduğunca çok fire
                 while tokens >= 1 do
                     LocalPlayer.muscleEvent:FireServer("rep")
-                    tokens = tokens - 1
+                    tokens -= 1
                 end
-                task.wait()
+
+                task.wait(0.01) -- 🔥 İstediğin gibi 0.01
             end
         end)
     else
-        strStatus.Text = "Status: Inactive"; strStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
+        if strengthStartTime > 0 then
+            strengthTotalTime += os.clock() - strengthStartTime
+        end
+        strStatus.Text = "Status: Inactive"
+        strStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
     end
 end)
 
+-- Strength Tracking
 strengthStat:GetPropertyChangedSignal("Value"):Connect(function()
     local current = strengthStat.Value
     if current > lastStrength then
-        strengthGained = strengthGained + (current - lastStrength)
+        strengthGained += current - lastStrength
         strStats.Text = "Strength: " .. formatNumber(current) .. " | Gained: " .. formatNumber(strengthGained)
         lastStrength = current
     end
 end)
 
-task.spawn(function()
-    while true do
-        if isRebirthActive then
-            local elapsed = rebirthTotalTime + (os.clock() - rebirthStartTime)
-            rebRuntime.Text = string.format("Runtime: %dd %dh %dm %ds", math.floor(elapsed/86400), math.floor((elapsed%86400)/3600), math.floor((elapsed%3600)/60), math.floor(elapsed%60))
-            local hours = elapsed / 3600
-            if hours > 0 then
-                local rateH = rebirthGained / hours
-                rebPace.Text = string.format("Pace: %s/Min | %s/Hour | %s/Day | %s/Week", formatNumber(rateH/60), formatNumber(rateH), formatNumber(rateH*24), formatNumber(rateH*168))
-                rebAverage.Text = string.format("Average: %s/Min | %s/Hour | %s/Day | %s/Week", formatNumber(rateH/60), formatNumber(rateH), formatNumber(rateH*24), formatNumber(rateH*168))
-            end
-        end
-        if isStrengthActive then
-            local elapsed = strengthTotalTime + (os.clock() - strengthStartTime)
-            strRuntime.Text = string.format("Runtime: %dd %dh %dm %ds", math.floor(elapsed/86400), math.floor((elapsed%86400)/3600), math.floor((elapsed%3600)/60), math.floor(elapsed%60))
-            local seconds = elapsed
-            if seconds > 0 then
-                local rateS = strengthGained / seconds
-                strPace.Text = string.format("Strength: %s/S | %s/Min | %s/Hour | %s/Day | %s/Week", formatNumber(rateS), formatNumber(rateS*60), formatNumber(rateS*3600), formatNumber(rateS*86400), formatNumber(rateS*604800))
-            end
-        end
-        task.wait(1)
+-- Durability Tracking
+durabilityStat:GetPropertyChangedSignal("Value"):Connect(function()
+    local current = durabilityStat.Value
+    if current > lastDurability then
+        durabilityGained += current - lastDurability
+        strDura.Text = "Durability: " .. formatNumber(current) .. " | Gained: " .. formatNumber(durabilityGained)
+        lastDurability = current
     end
 end)
 
-FastFarming:AddLabel("This Tab Made By Henne ❤️")
+-- Runtime + Pace (1 saniyede bir)
+task.spawn(function()
+    while true do
+        if isStrengthActive then
+            local elapsed = strengthTotalTime + (os.clock() - strengthStartTime)
+            strRuntime.Text = string.format("Runtime: %dd %dh %dm %ds",
+                math.floor(elapsed / 86400),
+                math.floor((elapsed % 86400) / 3600),
+                math.floor((elapsed % 3600) / 60),
+                math.floor(elapsed % 60)
+            )
+
+            if elapsed > 0.5 then
+                local rateS = strengthGained / elapsed
+                local rateD = durabilityGained / elapsed
+
+                strPace.Text = string.format("Strength: %s/S | %s/Min | %s/Hour | %s/Day | %s/Week",
+                    formatNumber(rateS),
+                    formatNumber(rateS * 60),
+                    formatNumber(rateS * 3600),
+                    formatNumber(rateS * 86400),
+                    formatNumber(rateS * 604800)
+                )
+
+                strAvg.Text = string.format("Durability: %s/S | %s/Min | %s/Hour | %s/Day | %s/Week",
+                    formatNumber(rateD),
+                    formatNumber(rateD * 60),
+                    formatNumber(rateD * 3600),
+                    formatNumber(rateD * 86400),
+                    formatNumber(rateD * 604800)
+                )
+            end
+        end
+        task.wait(0.01)
+    end
+end)
 
 local pets = window:AddTab("Pets")
 pets:AddLabel("💰 Auto Buy")
@@ -2271,7 +2330,7 @@ end)
 
 local credits = window:AddTab("Credits")
 
-local title = credits:AddLabel("✨ KRYVEX HUB V4")
+local title = credits:AddLabel("✨ Kryvex Paid ")
 title.TextColor3 = Color3.fromRGB(255, 50, 75)
 
 local dev = credits:AddLabel("👤 Developer: WozzyLaco🏴")
@@ -2298,7 +2357,7 @@ end)
 
 credits:AddLabel(" ")
 
-local bigTitle = credits:AddLabel("🚀 KRYVEX PUBLIC V4 🚀")
+local bigTitle = credits:AddLabel("🚀 KRYVEX PRİVATE V2 🚀")
 pcall(function()
     bigTitle.TextSize = 25
     bigTitle.Font = Enum.Font.GothamBold

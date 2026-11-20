@@ -1,0 +1,1311 @@
+-- Wozzyz Hub · Access Center (Universal Key System UI)
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- ==================== CONFIGURATION ====================
+local Config = {
+	HubName = "Wozzyz Hub",
+	HubUpper = "WOZZYZ HUB",
+	Version = "v11.2",
+	ValidKey = "WOZZYZ-KEY-2026", -- Kendi anahtarını buraya yaz
+	KeyLink = "https://discord.gg/wozzyzhub", -- Get Key basıldığında panoya kopyalanır
+	DiscordLink = "https://discord.gg/wozzyzhub", -- Discord butonuna basıldığında kopyalanır
+	SaveKeyToFile = true,
+	KeyFileName = "WozzyzHub_SavedKey.txt",
+	-- Key doğrulandığında yüklenecek script (boş bırakırsan alttaki OnKeySuccess çalışır)
+	MainScriptUrl = "",
+	OnKeySuccess = function()
+		-- Buraya key girildikten sonra çalışacak kodu yazabilirsin
+		print("[Wozzyz Hub] Access granted! Loading script...")
+	end
+}
+-- =========================================================
+
+-- Clean previous UI if re-executed
+pcall(function()
+	if CoreGui:FindFirstChild("WozzyzHub_KeyUI") then
+		CoreGui:FindFirstChild("WozzyzHub_KeyUI"):Destroy()
+	elseif LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("WozzyzHub_KeyUI") then
+		LocalPlayer.PlayerGui:FindFirstChild("WozzyzHub_KeyUI"):Destroy()
+	end
+end)
+
+-- Helper functions
+local function Tween(obj, time, props, style, dir)
+	local info = TweenInfo.new(
+		time or 0.18,
+		style or Enum.EasingStyle.Quint,
+		dir or Enum.EasingDirection.Out
+	)
+	local t = TweenService:Create(obj, info, props)
+	t:Play()
+	return t
+end
+
+local function Round(obj, radius)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, radius)
+	c.Parent = obj
+	return c
+end
+
+local function Stroke(obj, color, thickness, transparency)
+	local s = Instance.new("UIStroke")
+	s.Color = color
+	s.Thickness = thickness or 1
+	s.Transparency = transparency or 0
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.Parent = obj
+	return s
+end
+
+local function SafeCopy(text)
+	local ok = false
+	pcall(function()
+		if setclipboard then
+			setclipboard(text)
+			ok = true
+		elseif toclipboard then
+			toclipboard(text)
+			ok = true
+		end
+	end)
+	return ok
+end
+
+local function DetectExecutor()
+	local name = "Executor"
+	pcall(function()
+		if identifyexecutor then
+			local id = identifyexecutor()
+			if type(id) == "table" then
+				name = tostring(id[1] or "Executor")
+			elseif id and tostring(id) ~= "" then
+				name = tostring(id)
+			end
+		elseif getexecutorname then
+			name = tostring(getexecutorname() or "Executor")
+		end
+	end)
+	return name
+end
+
+local function DetectPlatform()
+	if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+		return "Mobile"
+	elseif UserInputService.GamepadEnabled and not UserInputService.KeyboardEnabled then
+		return "Console"
+	end
+	return "PC / Desktop"
+end
+
+local function GetGameInfo()
+	local gameName = "Roblox Experience"
+	local thumb = ""
+	pcall(function()
+		local info = MarketplaceService:GetProductInfo(game.PlaceId, Enum.InfoType.Asset)
+		if info and info.Name then
+			gameName = info.Name
+		end
+	end)
+	pcall(function()
+		thumb = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+	end)
+	local gameIcon = "rbxassetid://7072718362"
+	pcall(function()
+		-- Fallback icon
+		gameIcon = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+	end)
+	return gameName, thumb, gameIcon
+end
+
+local gameName, avatarUrl, gameIcon = GetGameInfo()
+local executorName = DetectExecutor()
+local platformName = DetectPlatform()
+
+-- Palette matching reference dark green/slate loader
+local C = {
+	Bg = Color3.fromRGB(14, 21, 18),
+	Window = Color3.fromRGB(18, 27, 23),
+	Sidebar = Color3.fromRGB(16, 25, 21),
+	Card = Color3.fromRGB(22, 34, 29),
+	CardDark = Color3.fromRGB(15, 23, 19),
+	InputBg = Color3.fromRGB(13, 20, 17),
+	Border = Color3.fromRGB(36, 56, 47),
+	BorderBright = Color3.fromRGB(68, 128, 98),
+	Text = Color3.fromRGB(238, 246, 242),
+	SubText = Color3.fromRGB(145, 168, 157),
+	Muted = Color3.fromRGB(108, 130, 120),
+	Green = Color3.fromRGB(78, 186, 134),
+	GreenBtnTop = Color3.fromRGB(102, 204, 152),
+	GreenBtnBot = Color3.fromRGB(64, 158, 112),
+	Amber = Color3.fromRGB(235, 185, 65),
+	Red = Color3.fromRGB(235, 78, 78),
+	DotRed = Color3.fromRGB(235, 92, 82),
+	DotYellow = Color3.fromRGB(240, 192, 72),
+	DotGreen = Color3.fromRGB(80, 205, 120)
+}
+
+-- ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "WozzyzHub_KeyUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
+
+pcall(function()
+	ScreenGui.Parent = CoreGui
+end)
+if not ScreenGui.Parent then
+	ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Main Window Frame
+local MainWindow = Instance.new("Frame")
+MainWindow.Name = "MainWindow"
+MainWindow.Size = UDim2.new(0, 760, 0, 520)
+MainWindow.Position = UDim2.new(0.5, -380, 0.5, -260)
+MainWindow.BackgroundColor3 = C.Window
+MainWindow.BackgroundTransparency = 1
+MainWindow.BorderSizePixel = 0
+MainWindow.ClipsDescendants = true
+MainWindow.Parent = ScreenGui
+
+Round(MainWindow, 14)
+local WinStroke = Stroke(MainWindow, C.Border, 1.2, 0.15)
+
+local UIScale = Instance.new("UIScale")
+UIScale.Scale = 0.92
+UIScale.Parent = MainWindow
+
+-- Responsive scaling for smaller screens
+local function UpdateScale()
+	local cam = workspace.CurrentCamera
+	if not cam then return end
+	local vp = cam.ViewportSize
+	local sx = (vp.X - 24) / 760
+	local sy = (vp.Y - 24) / 520
+	local targetBase = math.clamp(math.min(sx, sy, 1), 0.55, 1)
+	MainWindow:SetAttribute("BaseScale", targetBase)
+	UIScale.Scale = targetBase
+end
+UpdateScale()
+
+-- ==================== TOP TITLE BAR ====================
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 38)
+TopBar.BackgroundColor3 = Color3.fromRGB(15, 22, 19)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainWindow
+
+local TopLine = Instance.new("Frame")
+TopLine.Size = UDim2.new(1, 0, 0, 1)
+TopLine.Position = UDim2.new(0, 0, 1, -1)
+TopLine.BackgroundColor3 = C.Border
+TopLine.BackgroundTransparency = 0.45
+TopLine.BorderSizePixel = 0
+TopLine.Parent = TopBar
+
+-- Traffic lights (Red, Yellow, Green)
+local function MakeTrafficDot(xPos, color)
+	local dot = Instance.new("TextButton")
+	dot.Size = UDim2.new(0, 11, 0, 11)
+	dot.Position = UDim2.new(0, xPos, 0.5, -5.5)
+	dot.BackgroundColor3 = color
+	dot.Text = ""
+	dot.AutoButtonColor = false
+	dot.BorderSizePixel = 0
+	dot.Parent = TopBar
+	Round(dot, 999)
+
+	dot.MouseEnter:Connect(function()
+		Tween(dot, 0.12, {Size = UDim2.new(0, 13, 0, 13), Position = UDim2.new(0, xPos - 1, 0.5, -6.5)})
+	end)
+	dot.MouseLeave:Connect(function()
+		Tween(dot, 0.12, {Size = UDim2.new(0, 11, 0, 11), Position = UDim2.new(0, xPos, 0.5, -5.5)})
+	end)
+	return dot
+end
+
+local RedDot = MakeTrafficDot(14, C.DotRed)
+local YellowDot = MakeTrafficDot(32, C.DotYellow)
+local GreenDot = MakeTrafficDot(50, C.DotGreen)
+
+local TopTitle = Instance.new("TextLabel")
+TopTitle.Size = UDim2.new(0, 260, 1, 0)
+TopTitle.Position = UDim2.new(0, 74, 0, 0)
+TopTitle.BackgroundTransparency = 1
+TopTitle.Text = Config.HubName .. " · Access Center"
+TopTitle.TextColor3 = C.Text
+TopTitle.Font = Enum.Font.GothamBold
+TopTitle.TextSize = 13
+TopTitle.TextXAlignment = Enum.TextXAlignment.Left
+TopTitle.Parent = TopBar
+
+-- Right Minimize & Close buttons (- X)
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 32, 0, 28)
+MinBtn.Position = UDim2.new(1, -74, 0.5, -14)
+MinBtn.BackgroundColor3 = Color3.fromRGB(24, 35, 30)
+MinBtn.BackgroundTransparency = 1
+MinBtn.Text = "—"
+MinBtn.TextColor3 = C.SubText
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 14
+MinBtn.AutoButtonColor = false
+MinBtn.BorderSizePixel = 0
+MinBtn.Parent = TopBar
+Round(MinBtn, 6)
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 32, 0, 28)
+CloseBtn.Position = UDim2.new(1, -38, 0.5, -14)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(48, 20, 22)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = C.SubText
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 13
+CloseBtn.AutoButtonColor = false
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Parent = TopBar
+Round(CloseBtn, 6)
+
+-- ==================== DRAGGABLE WINDOW ====================
+do
+	local dragging = false
+	local dragInput, dragStart, startPos
+
+	TopBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = MainWindow.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	TopBar.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input == dragInput then
+			local delta = input.Position - dragStart
+			local scale = UIScale.Scale > 0 and UIScale.Scale or 1
+			MainWindow.Position = UDim2.new(
+				startPos.X.Scale,
+				startPos.X.Offset + (delta.X / scale),
+				startPos.Y.Scale,
+				startPos.Y.Offset + (delta.Y / scale)
+			)
+		end
+	end)
+end
+
+-- ==================== CONTENT CONTAINER ====================
+local ContentArea = Instance.new("Frame")
+ContentArea.Name = "ContentArea"
+ContentArea.Size = UDim2.new(1, 0, 1, -38)
+ContentArea.Position = UDim2.new(0, 0, 0, 38)
+ContentArea.BackgroundTransparency = 1
+ContentArea.Parent = MainWindow
+
+-- ==================== LEFT SIDEBAR ====================
+local Sidebar = Instance.new("Frame")
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.new(0, 198, 1, 0)
+Sidebar.BackgroundColor3 = C.Sidebar
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = ContentArea
+
+local SideLine = Instance.new("Frame")
+SideLine.Size = UDim2.new(0, 1, 1, 0)
+SideLine.Position = UDim2.new(1, -1, 0, 0)
+SideLine.BackgroundColor3 = C.Border
+SideLine.BackgroundTransparency = 0.45
+SideLine.BorderSizePixel = 0
+SideLine.Parent = Sidebar
+
+-- Avatar Frame
+local AvatarHolder = Instance.new("Frame")
+AvatarHolder.Size = UDim2.new(0, 78, 0, 78)
+AvatarHolder.Position = UDim2.new(0.5, -39, 0, 14)
+AvatarHolder.BackgroundColor3 = C.Card
+AvatarHolder.BorderSizePixel = 0
+AvatarHolder.Parent = Sidebar
+Round(AvatarHolder, 999)
+Stroke(AvatarHolder, C.Green, 2, 0.25)
+
+local AvatarImg = Instance.new("ImageLabel")
+AvatarImg.Size = UDim2.new(1, -6, 1, -6)
+AvatarImg.Position = UDim2.new(0, 3, 0, 3)
+AvatarImg.BackgroundColor3 = C.CardDark
+AvatarImg.Image = avatarUrl
+AvatarImg.BorderSizePixel = 0
+AvatarImg.Parent = AvatarHolder
+Round(AvatarImg, 999)
+
+local DisplayNameLbl = Instance.new("TextLabel")
+DisplayNameLbl.Size = UDim2.new(1, -16, 0, 20)
+DisplayNameLbl.Position = UDim2.new(0, 8, 0, 96)
+DisplayNameLbl.BackgroundTransparency = 1
+DisplayNameLbl.Text = string.upper(LocalPlayer.DisplayName)
+DisplayNameLbl.TextColor3 = C.Text
+DisplayNameLbl.Font = Enum.Font.GothamBold
+DisplayNameLbl.TextSize = 14
+DisplayNameLbl.TextTruncate = Enum.TextTruncate.AtEnd
+DisplayNameLbl.Parent = Sidebar
+
+local HandleLbl = Instance.new("TextLabel")
+HandleLbl.Size = UDim2.new(1, -16, 0, 16)
+HandleLbl.Position = UDim2.new(0, 8, 0, 114)
+HandleLbl.BackgroundTransparency = 1
+HandleLbl.Text = "@" .. LocalPlayer.Name
+HandleLbl.TextColor3 = C.SubText
+HandleLbl.Font = Enum.Font.GothamMedium
+HandleLbl.TextSize = 11
+HandleLbl.TextTruncate = Enum.TextTruncate.AtEnd
+HandleLbl.Parent = Sidebar
+
+-- Online Pill
+local OnlinePill = Instance.new("Frame")
+OnlinePill.Size = UDim2.new(0, 74, 0, 22)
+OnlinePill.Position = UDim2.new(0.5, -37, 0, 134)
+OnlinePill.BackgroundColor3 = Color3.fromRGB(20, 42, 32)
+OnlinePill.BorderSizePixel = 0
+OnlinePill.Parent = Sidebar
+Round(OnlinePill, 999)
+Stroke(OnlinePill, C.Green, 1, 0.55)
+
+local OnlineDot = Instance.new("Frame")
+OnlineDot.Size = UDim2.new(0, 6, 0, 6)
+OnlineDot.Position = UDim2.new(0, 11, 0.5, -3)
+OnlineDot.BackgroundColor3 = C.Green
+OnlineDot.BorderSizePixel = 0
+OnlineDot.Parent = OnlinePill
+Round(OnlineDot, 999)
+
+local OnlineTxt = Instance.new("TextLabel")
+OnlineTxt.Size = UDim2.new(1, -22, 1, 0)
+OnlineTxt.Position = UDim2.new(0, 20, 0, 0)
+OnlineTxt.BackgroundTransparency = 1
+OnlineTxt.Text = "online"
+OnlineTxt.TextColor3 = C.Green
+OnlineTxt.Font = Enum.Font.GothamBold
+OnlineTxt.TextSize = 11
+OnlineTxt.TextXAlignment = Enum.TextXAlignment.Left
+OnlineTxt.Parent = OnlinePill
+
+-- Info Tiles (User ID, Executor, Platform)
+local function MakeInfoTile(yPos, labelTitle, valueText, clickable, copyVal)
+	local tile = Instance.new("TextButton")
+	tile.Size = UDim2.new(1, -24, 0, 44)
+	tile.Position = UDim2.new(0, 12, 0, yPos)
+	tile.BackgroundColor3 = C.Card
+	tile.Text = ""
+	tile.AutoButtonColor = false
+	tile.BorderSizePixel = 0
+	tile.Parent = Sidebar
+	Round(tile, 8)
+	local st = Stroke(tile, C.Border, 1, 0.35)
+
+	local topLbl = Instance.new("TextLabel")
+	topLbl.Size = UDim2.new(1, -36, 0, 14)
+	topLbl.Position = UDim2.new(0, 30, 0, 6)
+	topLbl.BackgroundTransparency = 1
+	topLbl.Text = labelTitle
+	topLbl.TextColor3 = C.Muted
+	topLbl.Font = Enum.Font.GothamBold
+	topLbl.TextSize = 9
+	topLbl.TextXAlignment = Enum.TextXAlignment.Left
+	topLbl.Parent = tile
+
+	local valLbl = Instance.new("TextLabel")
+	valLbl.Size = UDim2.new(1, -36, 0, 18)
+	valLbl.Position = UDim2.new(0, 30, 0, 20)
+	valLbl.BackgroundTransparency = 1
+	valLbl.Text = valueText
+	valLbl.TextColor3 = C.Text
+	valLbl.Font = Enum.Font.GothamBold
+	valLbl.TextSize = 11
+	valLbl.TextXAlignment = Enum.TextXAlignment.Left
+	valLbl.TextTruncate = Enum.TextTruncate.AtEnd
+	valLbl.Parent = tile
+
+	tile.MouseEnter:Connect(function()
+		Tween(tile, 0.14, {BackgroundColor3 = Color3.fromRGB(27, 42, 36)})
+		Tween(st, 0.14, {Color = C.BorderBright, Transparency = 0.1})
+	end)
+	tile.MouseLeave:Connect(function()
+		Tween(tile, 0.14, {BackgroundColor3 = C.Card})
+		Tween(st, 0.14, {Color = C.Border, Transparency = 0.35})
+	end)
+
+	if clickable and copyVal then
+		tile.MouseButton1Click:Connect(function()
+			SafeCopy(tostring(copyVal))
+			local old = valLbl.Text
+			valLbl.Text = "COPIED!"
+			valLbl.TextColor3 = C.Green
+			task.delay(1.1, function()
+				if valLbl then
+					valLbl.Text = old
+					valLbl.TextColor3 = C.Text
+				end
+			end)
+		end)
+	end
+
+	return tile, valLbl
+end
+
+MakeInfoTile(166, "USER ID · TAP TO COPY", tostring(LocalPlayer.UserId), true, LocalPlayer.UserId)
+MakeInfoTile(216, "EXECUTOR", executorName, false)
+MakeInfoTile(266, "PLATFORM", platformName, false)
+
+-- Now Playing Card
+local NowPlaying = Instance.new("Frame")
+NowPlaying.Size = UDim2.new(1, -24, 0, 82)
+NowPlaying.Position = UDim2.new(0, 12, 0, 318)
+NowPlaying.BackgroundColor3 = C.Card
+NowPlaying.BorderSizePixel = 0
+NowPlaying.Parent = Sidebar
+Round(NowPlaying, 9)
+Stroke(NowPlaying, C.Border, 1, 0.35)
+
+local NPLbl = Instance.new("TextLabel")
+NPLbl.Size = UDim2.new(1, -16, 0, 14)
+NPLbl.Position = UDim2.new(0, 10, 0, 6)
+NPLbl.BackgroundTransparency = 1
+NPLbl.Text = "NOW PLAYING"
+NPLbl.TextColor3 = C.Muted
+NPLbl.Font = Enum.Font.GothamBold
+NPLbl.TextSize = 9
+NPLbl.TextXAlignment = Enum.TextXAlignment.Left
+NPLbl.Parent = NowPlaying
+
+local NPActiveDot = Instance.new("Frame")
+NPActiveDot.Size = UDim2.new(0, 6, 0, 6)
+NPActiveDot.Position = UDim2.new(1, -16, 0, 10)
+NPActiveDot.BackgroundColor3 = C.Green
+NPActiveDot.BorderSizePixel = 0
+NPActiveDot.Parent = NowPlaying
+Round(NPActiveDot, 999)
+
+local GameThumb = Instance.new("ImageLabel")
+GameThumb.Size = UDim2.new(0, 32, 0, 32)
+GameThumb.Position = UDim2.new(0, 10, 0, 23)
+GameThumb.BackgroundColor3 = C.CardDark
+GameThumb.Image = gameIcon
+GameThumb.BorderSizePixel = 0
+GameThumb.Parent = NowPlaying
+Round(GameThumb, 6)
+
+local GameTitleLbl = Instance.new("TextLabel")
+GameTitleLbl.Size = UDim2.new(1, -52, 0, 18)
+GameTitleLbl.Position = UDim2.new(0, 48, 0, 22)
+GameTitleLbl.BackgroundTransparency = 1
+GameTitleLbl.Text = gameName
+GameTitleLbl.TextColor3 = C.Text
+GameTitleLbl.Font = Enum.Font.GothamBold
+GameTitleLbl.TextSize = 11
+GameTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+GameTitleLbl.TextTruncate = Enum.TextTruncate.AtEnd
+GameTitleLbl.Parent = NowPlaying
+
+local ReadySubLbl = Instance.new("TextLabel")
+ReadySubLbl.Size = UDim2.new(1, -52, 0, 14)
+ReadySubLbl.Position = UDim2.new(0, 48, 0, 39)
+ReadySubLbl.BackgroundTransparency = 1
+ReadySubLbl.Text = "1 script ready"
+ReadySubLbl.TextColor3 = C.Muted
+ReadySubLbl.Font = Enum.Font.GothamMedium
+ReadySubLbl.TextSize = 10
+ReadySubLbl.TextXAlignment = Enum.TextXAlignment.Left
+ReadySubLbl.Parent = NowPlaying
+
+local SuppPill = Instance.new("Frame")
+SuppPill.Size = UDim2.new(1, -20, 0, 18)
+SuppPill.Position = UDim2.new(0, 10, 0, 58)
+SuppPill.BackgroundColor3 = Color3.fromRGB(20, 39, 30)
+SuppPill.BorderSizePixel = 0
+SuppPill.Parent = NowPlaying
+Round(SuppPill, 5)
+
+local SuppTxt = Instance.new("TextLabel")
+SuppTxt.Size = UDim2.new(1, -8, 1, 0)
+SuppTxt.Position = UDim2.new(0, 8, 0, 0)
+SuppTxt.BackgroundTransparency = 1
+SuppTxt.Text = "✓  Supported game"
+SuppTxt.TextColor3 = C.Green
+SuppTxt.Font = Enum.Font.GothamBold
+SuppTxt.TextSize = 10
+SuppTxt.TextXAlignment = Enum.TextXAlignment.Left
+SuppTxt.Parent = SuppPill
+
+-- Bottom Session Bar
+local SessionBox = Instance.new("Frame")
+SessionBox.Size = UDim2.new(1, -24, 0, 52)
+SessionBox.Position = UDim2.new(0, 12, 1, -62)
+SessionBox.BackgroundColor3 = C.CardDark
+SessionBox.BorderSizePixel = 0
+SessionBox.Parent = Sidebar
+Round(SessionBox, 8)
+Stroke(SessionBox, C.Border, 1, 0.4)
+
+local SessDot = Instance.new("Frame")
+SessDot.Size = UDim2.new(0, 6, 0, 6)
+SessDot.Position = UDim2.new(0, 10, 0, 13)
+SessDot.BackgroundColor3 = C.Green
+SessDot.BorderSizePixel = 0
+SessDot.Parent = SessionBox
+Round(SessDot, 999)
+
+local SessTitle = Instance.new("TextLabel")
+SessTitle.Size = UDim2.new(0, 105, 0, 16)
+SessTitle.Position = UDim2.new(0, 22, 0, 8)
+SessTitle.BackgroundTransparency = 1
+SessTitle.Text = "SESSION ACTIVE"
+SessTitle.TextColor3 = C.Text
+SessTitle.Font = Enum.Font.GothamBold
+SessTitle.TextSize = 10
+SessTitle.TextXAlignment = Enum.TextXAlignment.Left
+SessTitle.Parent = SessionBox
+
+local TimerLbl = Instance.new("TextLabel")
+TimerLbl.Size = UDim2.new(0, 44, 0, 16)
+TimerLbl.Position = UDim2.new(1, -50, 0, 8)
+TimerLbl.BackgroundTransparency = 1
+TimerLbl.Text = "00:00"
+TimerLbl.TextColor3 = C.SubText
+TimerLbl.Font = Enum.Font.Code
+TimerLbl.TextSize = 11
+TimerLbl.TextXAlignment = Enum.TextXAlignment.Right
+TimerLbl.Parent = SessionBox
+
+local AuthStatusLbl = Instance.new("TextLabel")
+AuthStatusLbl.Size = UDim2.new(1, -18, 0, 16)
+AuthStatusLbl.Position = UDim2.new(0, 10, 0, 28)
+AuthStatusLbl.BackgroundTransparency = 1
+AuthStatusLbl.Text = "Ready to authenticate · " .. Config.Version
+AuthStatusLbl.TextColor3 = C.Muted
+AuthStatusLbl.Font = Enum.Font.GothamMedium
+AuthStatusLbl.TextSize = 10
+AuthStatusLbl.TextXAlignment = Enum.TextXAlignment.Left
+AuthStatusLbl.Parent = SessionBox
+
+-- ==================== RIGHT MAIN PANEL ====================
+local RightPanel = Instance.new("Frame")
+RightPanel.Name = "RightPanel"
+RightPanel.Size = UDim2.new(1, -198, 1, 0)
+RightPanel.Position = UDim2.new(0, 198, 0, 0)
+RightPanel.BackgroundTransparency = 1
+RightPanel.Parent = ContentArea
+
+-- Header Brand Row
+local LogoBadge = Instance.new("Frame")
+LogoBadge.Size = UDim2.new(0, 42, 0, 42)
+LogoBadge.Position = UDim2.new(0, 22, 0, 18)
+LogoBadge.BackgroundColor3 = C.Card
+LogoBadge.BorderSizePixel = 0
+LogoBadge.Parent = RightPanel
+Round(LogoBadge, 999)
+Stroke(LogoBadge, C.BorderBright, 1.4, 0.2)
+
+local LogoLetter = Instance.new("TextLabel")
+LogoLetter.Size = UDim2.new(1, 0, 1, 0)
+LogoLetter.BackgroundTransparency = 1
+LogoLetter.Text = "W"
+LogoLetter.TextColor3 = C.Text
+LogoLetter.Font = Enum.Font.GothamBlack
+LogoLetter.TextSize = 18
+LogoLetter.Parent = LogoBadge
+
+local ActiveSvcLbl = Instance.new("TextLabel")
+ActiveSvcLbl.Size = UDim2.new(0, 220, 0, 14)
+ActiveSvcLbl.Position = UDim2.new(0, 74, 0, 15)
+ActiveSvcLbl.BackgroundTransparency = 1
+ActiveSvcLbl.Text = "ACTIVE SERVICE"
+ActiveSvcLbl.TextColor3 = C.Green
+ActiveSvcLbl.Font = Enum.Font.GothamBold
+ActiveSvcLbl.TextSize = 10
+ActiveSvcLbl.TextXAlignment = Enum.TextXAlignment.Left
+ActiveSvcLbl.Parent = RightPanel
+
+local HubTitleLbl = Instance.new("TextLabel")
+HubTitleLbl.Size = UDim2.new(0, 280, 0, 22)
+HubTitleLbl.Position = UDim2.new(0, 74, 0, 27)
+HubTitleLbl.BackgroundTransparency = 1
+HubTitleLbl.Text = Config.HubUpper
+HubTitleLbl.TextColor3 = C.Text
+HubTitleLbl.Font = Enum.Font.GothamBlack
+HubTitleLbl.TextSize = 18
+HubTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+HubTitleLbl.Parent = RightPanel
+
+local HubSubLbl = Instance.new("TextLabel")
+HubSubLbl.Size = UDim2.new(0, 280, 0, 16)
+HubSubLbl.Position = UDim2.new(0, 74, 0, 48)
+HubSubLbl.BackgroundTransparency = 1
+HubSubLbl.Text = "Secure access & script loader"
+HubSubLbl.TextColor3 = C.SubText
+HubSubLbl.Font = Enum.Font.GothamMedium
+HubSubLbl.TextSize = 11
+HubSubLbl.TextXAlignment = Enum.TextXAlignment.Left
+HubSubLbl.Parent = RightPanel
+
+local OnlineBadge = Instance.new("Frame")
+OnlineBadge.Size = UDim2.new(0, 118, 0, 26)
+OnlineBadge.Position = UDim2.new(1, -140, 0, 25)
+OnlineBadge.BackgroundColor3 = Color3.fromRGB(19, 38, 29)
+OnlineBadge.BorderSizePixel = 0
+OnlineBadge.Parent = RightPanel
+Round(OnlineBadge, 999)
+Stroke(OnlineBadge, C.Green, 1, 0.5)
+
+local OnlineBadgeTxt = Instance.new("TextLabel")
+OnlineBadgeTxt.Size = UDim2.new(1, 0, 1, 0)
+OnlineBadgeTxt.BackgroundTransparency = 1
+OnlineBadgeTxt.Text = "●  ONLINE · " .. Config.Version
+OnlineBadgeTxt.TextColor3 = C.Green
+OnlineBadgeTxt.Font = Enum.Font.GothamBold
+OnlineBadgeTxt.TextSize = 10
+OnlineBadgeTxt.Parent = OnlineBadge
+
+-- ACTIVE ACCESS Section
+local ActAccessTitle = Instance.new("TextLabel")
+ActAccessTitle.Size = UDim2.new(1, -44, 0, 16)
+ActAccessTitle.Position = UDim2.new(0, 22, 0, 78)
+ActAccessTitle.BackgroundTransparency = 1
+ActAccessTitle.Text = "ACTIVE ACCESS"
+ActAccessTitle.TextColor3 = C.Text
+ActAccessTitle.Font = Enum.Font.GothamBold
+ActAccessTitle.TextSize = 11
+ActAccessTitle.TextXAlignment = Enum.TextXAlignment.Left
+ActAccessTitle.Parent = RightPanel
+
+local ActAccessDesc = Instance.new("TextLabel")
+ActAccessDesc.Size = UDim2.new(1, -44, 0, 16)
+ActAccessDesc.Position = UDim2.new(0, 22, 0, 95)
+ActAccessDesc.BackgroundTransparency = 1
+ActAccessDesc.Text = "Enter your " .. Config.HubName .. " key to unlock the loader."
+ActAccessDesc.TextColor3 = C.SubText
+ActAccessDesc.Font = Enum.Font.GothamMedium
+ActAccessDesc.TextSize = 11
+ActAccessDesc.TextXAlignment = Enum.TextXAlignment.Left
+ActAccessDesc.Parent = RightPanel
+
+-- Waiting For Key Box
+local WaitBox = Instance.new("Frame")
+WaitBox.Size = UDim2.new(1, -44, 0, 52)
+WaitBox.Position = UDim2.new(0, 22, 0, 118)
+WaitBox.BackgroundColor3 = C.Card
+WaitBox.BorderSizePixel = 0
+WaitBox.Parent = RightPanel
+Round(WaitBox, 9)
+local WaitStroke = Stroke(WaitBox, C.Border, 1, 0.35)
+
+local WaitIcon = Instance.new("TextLabel")
+WaitIcon.Size = UDim2.new(0, 28, 0, 28)
+WaitIcon.Position = UDim2.new(0, 14, 0.5, -14)
+WaitIcon.BackgroundTransparency = 1
+WaitIcon.Text = "⚿"
+WaitIcon.TextColor3 = C.SubText
+WaitIcon.Font = Enum.Font.GothamBold
+WaitIcon.TextSize = 16
+WaitIcon.Parent = WaitBox
+
+local WaitTitle = Instance.new("TextLabel")
+WaitTitle.Size = UDim2.new(1, -80, 0, 18)
+WaitTitle.Position = UDim2.new(0, 48, 0, 8)
+WaitTitle.BackgroundTransparency = 1
+WaitTitle.Text = "Waiting for key"
+WaitTitle.TextColor3 = C.Text
+WaitTitle.Font = Enum.Font.GothamBold
+WaitTitle.TextSize = 12
+WaitTitle.TextXAlignment = Enum.TextXAlignment.Left
+WaitTitle.Parent = WaitBox
+
+local WaitSub = Instance.new("TextLabel")
+WaitSub.Size = UDim2.new(1, -80, 0, 16)
+WaitSub.Position = UDim2.new(0, 48, 0, 26)
+WaitSubLbl = WaitSub
+WaitSub.BackgroundTransparency = 1
+WaitSub.Text = "No active license detected"
+WaitSub.TextColor3 = C.Muted
+WaitSub.Font = Enum.Font.GothamMedium
+WaitSub.TextSize = 11
+WaitSub.TextXAlignment = Enum.TextXAlignment.Left
+WaitSub.Parent = WaitBox
+
+local WaitDot = Instance.new("Frame")
+WaitDot.Size = UDim2.new(0, 7, 0, 7)
+WaitDot.Position = UDim2.new(1, -18, 0.5, -3.5)
+WaitDot.BackgroundColor3 = C.Amber
+WaitDot.BorderSizePixel = 0
+WaitDot.Parent = WaitBox
+Round(WaitDot, 999)
+
+-- Get Key & Redeem Buttons Row
+local GetKeyBtn = Instance.new("TextButton")
+GetKeyBtn.Size = UDim2.new(0.55, -26, 0, 50)
+GetKeyBtn.Position = UDim2.new(0, 22, 0, 180)
+GetKeyBtn.BackgroundColor3 = C.Green
+GetKeyBtn.Text = ""
+GetKeyBtn.AutoButtonColor = false
+GetKeyBtn.BorderSizePixel = 0
+GetKeyBtn.Parent = RightPanel
+Round(GetKeyBtn, 9)
+
+local GetKeyGrad = Instance.new("UIGradient")
+GetKeyGrad.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, C.GreenBtnTop),
+	ColorSequenceKeypoint.new(1, C.GreenBtnBot)
+})
+GetKeyGrad.Rotation = 90
+GetKeyGrad.Parent = GetKeyBtn
+
+local GetKeyMain = Instance.new("TextLabel")
+GetKeyMain.Size = UDim2.new(1, -44, 0, 20)
+GetKeyMain.Position = UDim2.new(0, 38, 0, 7)
+GetKeyMain.BackgroundTransparency = 1
+GetKeyMain.Text = "Get Key"
+GetKeyMain.TextColor3 = Color3.fromRGB(10, 24, 17)
+GetKeyMain.Font = Enum.Font.GothamBold
+GetKeyMain.TextSize = 13
+GetKeyMain.TextXAlignment = Enum.TextXAlignment.Left
+GetKeyMain.Parent = GetKeyBtn
+
+local GetKeySub = Instance.new("TextLabel")
+GetKeySub.Size = UDim2.new(1, -44, 0, 16)
+GetKeySub.Position = UDim2.new(0, 38, 0, 26)
+GetKeySub.BackgroundTransparency = 1
+GetKeySub.Text = "Copy access link"
+GetKeySub.TextColor3 = Color3.fromRGB(18, 46, 32)
+GetKeySub.Font = Enum.Font.GothamMedium
+GetKeySub.TextSize = 11
+GetKeySub.TextXAlignment = Enum.TextXAlignment.Left
+GetKeySub.Parent = GetKeyBtn
+
+local GetKeyIcon = Instance.new("TextLabel")
+GetKeyIcon.Size = UDim2.new(0, 24, 0, 24)
+GetKeyIcon.Position = UDim2.new(0, 10, 0.5, -12)
+GetKeyIcon.BackgroundTransparency = 1
+GetKeyIcon.Text = "⚿"
+GetKeyIcon.TextColor3 = Color3.fromRGB(10, 24, 17)
+GetKeyIcon.Font = Enum.Font.GothamBold
+GetKeyIcon.TextSize = 14
+GetKeyIcon.Parent = GetKeyBtn
+
+local RedeemBtn = Instance.new("TextButton")
+RedeemBtn.Size = UDim2.new(0.45, -24, 0, 50)
+RedeemBtn.Position = UDim2.new(0.55, 2, 0, 180)
+RedeemBtn.BackgroundColor3 = C.Card
+RedeemBtn.Text = ""
+RedeemBtn.AutoButtonColor = false
+RedeemBtn.BorderSizePixel = 0
+RedeemBtn.Parent = RightPanel
+Round(RedeemBtn, 9)
+local RedeemStroke = Stroke(RedeemBtn, C.Border, 1, 0.35)
+
+local RedeemIcon = Instance.new("TextLabel")
+RedeemIcon.Size = UDim2.new(0, 24, 0, 24)
+RedeemIcon.Position = UDim2.new(0, 10, 0.5, -12)
+RedeemIcon.BackgroundTransparency = 1
+RedeemIcon.Text = "✓"
+RedeemIcon.TextColor3 = C.SubText
+RedeemIcon.Font = Enum.Font.GothamBold
+RedeemIcon.TextSize = 14
+RedeemIcon.Parent = RedeemBtn
+
+local RedeemMain = Instance.new("TextLabel")
+RedeemMain.Size = UDim2.new(1, -42, 0, 20)
+RedeemMain.Position = UDim2.new(0, 36, 0, 7)
+RedeemMain.BackgroundTransparency = 1
+RedeemMain.Text = "Redeem"
+RedeemMain.TextColor3 = C.Text
+RedeemMain.Font = Enum.Font.GothamBold
+RedeemMain.TextSize = 13
+RedeemMain.TextXAlignment = Enum.TextXAlignment.Left
+RedeemMain.Parent = RedeemBtn
+
+local RedeemSub = Instance.new("TextLabel")
+RedeemSub.Size = UDim2.new(1, -42, 0, 16)
+RedeemSub.Position = UDim2.new(0, 36, 0, 26)
+RedeemSub.BackgroundTransparency = 1
+RedeemSub.Text = "Verify your license"
+RedeemSub.TextColor3 = C.SubText
+RedeemSub.Font = Enum.Font.GothamMedium
+RedeemSub.TextSize = 11
+RedeemSub.TextXAlignment = Enum.TextXAlignment.Left
+RedeemSub.Parent = RedeemBtn
+
+-- LICENSE KEY Input
+local LicLbl = Instance.new("TextLabel")
+LicLbl.Size = UDim2.new(1, -44, 0, 16)
+LicLbl.Position = UDim2.new(0, 22, 0, 240)
+LicLbl.BackgroundTransparency = 1
+LicLbl.Text = "LICENSE KEY"
+LicLbl.TextColor3 = C.SubText
+LicLbl.Font = Enum.Font.GothamBold
+LicLbl.TextSize = 10
+LicLbl.TextXAlignment = Enum.TextXAlignment.Left
+LicLbl.Parent = RightPanel
+
+local InputBox = Instance.new("Frame")
+InputBox.Size = UDim2.new(1, -44, 0, 42)
+InputBox.Position = UDim2.new(0, 22, 0, 259)
+InputBox.BackgroundColor3 = C.InputBg
+InputBox.BorderSizePixel = 0
+InputBox.Parent = RightPanel
+Round(InputBox, 8)
+local InputStroke = Stroke(InputBox, C.Border, 1, 0.3)
+
+local KeyIcon = Instance.new("TextLabel")
+KeyIcon.Size = UDim2.new(0, 26, 1, 0)
+KeyIcon.Position = UDim2.new(0, 10, 0, 0)
+KeyIcon.BackgroundTransparency = 1
+KeyIcon.Text = "⚿"
+KeyIcon.TextColor3 = C.Muted
+KeyIcon.Font = Enum.Font.GothamBold
+KeyIcon.TextSize = 14
+KeyIcon.Parent = InputBox
+
+local KeyTextBox = Instance.new("TextBox")
+KeyTextBox.Size = UDim2.new(1, -78, 1, 0)
+KeyTextBox.Position = UDim2.new(0, 40, 0, 0)
+KeyTextBox.BackgroundTransparency = 1
+KeyTextBox.PlaceholderText = "Paste your " .. Config.HubName .. " key here..."
+KeyTextBox.PlaceholderColor3 = C.Muted
+KeyTextBox.Text = ""
+KeyTextBox.TextColor3 = C.Text
+KeyTextBox.Font = Enum.Font.GothamMedium
+KeyTextBox.TextSize = 12
+KeyTextBox.TextXAlignment = Enum.TextXAlignment.Left
+KeyTextBox.ClearTextOnFocus = false
+KeyTextBox.Parent = InputBox
+
+local TargetRing = Instance.new("TextButton")
+TargetRing.Size = UDim2.new(0, 28, 0, 28)
+TargetRing.Position = UDim2.new(1, -34, 0.5, -14)
+TargetRing.BackgroundTransparency = 1
+TargetRing.Text = "◎"
+TargetRing.TextColor3 = C.Muted
+TargetRing.Font = Enum.Font.GothamBold
+TargetRing.TextSize = 14
+TargetRing.Parent = InputBox
+
+KeyTextBox.Focused:Connect(function()
+	Tween(InputStroke, 0.15, {Color = C.Green, Transparency = 0.05})
+	Tween(KeyIcon, 0.15, {TextColor3 = C.Green})
+end)
+KeyTextBox.FocusLost:Connect(function()
+	Tween(InputStroke, 0.15, {Color = C.Border, Transparency = 0.3})
+	Tween(KeyIcon, 0.15, {TextColor3 = C.Muted})
+end)
+
+-- Discord & Settings Row
+local DiscordBtn = Instance.new("TextButton")
+DiscordBtn.Size = UDim2.new(0.5, -26, 0, 38)
+DiscordBtn.Position = UDim2.new(0, 22, 0, 311)
+DiscordBtn.BackgroundColor3 = C.Card
+DiscordBtn.Text = "💬  Discord"
+DiscordBtn.TextColor3 = C.Text
+DiscordBtn.Font = Enum.Font.GothamBold
+DiscordBtn.TextSize = 12
+DiscordBtn.AutoButtonColor = false
+DiscordBtn.BorderSizePixel = 0
+DiscordBtn.Parent = RightPanel
+Round(DiscordBtn, 8)
+local DiscStroke = Stroke(DiscordBtn, C.Border, 1, 0.35)
+
+local SettingsBtn = Instance.new("TextButton")
+SettingsBtn.Size = UDim2.new(0.5, -26, 0, 38)
+SettingsBtn.Position = UDim2.new(0.5, 4, 0, 311)
+SettingsBtn.BackgroundColor3 = C.Card
+SettingsBtn.Text = "⚙  Settings"
+SettingsBtn.TextColor3 = C.Text
+SettingsBtn.Font = Enum.Font.GothamBold
+SettingsBtn.TextSize = 12
+SettingsBtn.AutoButtonColor = false
+SettingsBtn.BorderSizePixel = 0
+SettingsBtn.Parent = RightPanel
+Round(SettingsBtn, 8)
+local SettStroke = Stroke(SettingsBtn, C.Border, 1, 0.35)
+
+-- Premium Script Card
+local PremCard = Instance.new("Frame")
+PremCard.Size = UDim2.new(1, -44, 0, 84)
+PremCard.Position = UDim2.new(0, 22, 0, 357)
+PremCard.BackgroundColor3 = C.Card
+PremCard.BorderSizePixel = 0
+PremCard.Parent = RightPanel
+Round(PremCard, 9)
+Stroke(PremCard, C.Border, 1, 0.35)
+
+local PremTag = Instance.new("TextLabel")
+PremTag.Size = UDim2.new(1, -180, 0, 14)
+PremTag.Position = UDim2.new(0, 14, 0, 9)
+PremTag.BackgroundTransparency = 1
+PremTag.Text = "PREMIUM SCRIPT · " .. string.upper(gameName)
+PremTag.TextColor3 = C.Green
+PremTag.Font = Enum.Font.GothamBold
+PremTag.TextSize = 9
+PremTag.TextXAlignment = Enum.TextXAlignment.Left
+PremTag.TextTruncate = Enum.TextTruncate.AtEnd
+PremTag.Parent = PremCard
+
+local PremTitle = Instance.new("TextLabel")
+PremTitle.Size = UDim2.new(1, -180, 0, 20)
+PremTitle.Position = UDim2.new(0, 14, 0, 23)
+PremTitle.BackgroundTransparency = 1
+PremTitle.Text = gameName .. " Premium Script"
+PremTitle.TextColor3 = C.Text
+PremTitle.Font = Enum.Font.GothamBold
+PremTitle.TextSize = 13
+PremTitle.TextXAlignment = Enum.TextXAlignment.Left
+PremTitle.TextTruncate = Enum.TextTruncate.AtEnd
+PremTitle.Parent = PremCard
+
+local PremDesc = Instance.new("TextLabel")
+PremDesc.Size = UDim2.new(1, -180, 0, 30)
+PremDesc.Position = UDim2.new(0, 14, 0, 44)
+PremDesc.BackgroundTransparency = 1
+PremDesc.Text = "Premium script made exclusively for " .. gameName .. ". Join our Discord for features, updates, access and support."
+PremDesc.TextColor3 = C.SubText
+PremDesc.Font = Enum.Font.GothamMedium
+PremDesc.TextSize = 10
+PremDesc.TextWrapped = true
+PremDesc.TextXAlignment = Enum.TextXAlignment.Left
+PremDesc.TextYAlignment = Enum.TextYAlignment.Top
+PremDesc.Parent = PremCard
+
+local ViewDetailsBtn = Instance.new("TextButton")
+ViewDetailsBtn.Size = UDim2.new(0, 154, 0, 34)
+ViewDetailsBtn.Position = UDim2.new(1, -168, 0.5, -17)
+ViewDetailsBtn.BackgroundColor3 = Color3.fromRGB(32, 68, 50)
+ViewDetailsBtn.Text = "View Details · Join Discord"
+ViewDetailsBtn.TextColor3 = C.Green
+ViewDetailsBtn.Font = Enum.Font.GothamBold
+ViewDetailsBtn.TextSize = 10
+ViewDetailsBtn.AutoButtonColor = false
+ViewDetailsBtn.BorderSizePixel = 0
+ViewDetailsBtn.Parent = PremCard
+Round(ViewDetailsBtn, 7)
+local ViewStroke = Stroke(ViewDetailsBtn, C.Green, 1, 0.45)
+
+-- Footer Hint
+local FooterHint = Instance.new("TextLabel")
+FooterHint.Size = UDim2.new(1, -44, 0, 18)
+FooterHint.Position = UDim2.new(0, 22, 1, -24)
+FooterHint.BackgroundTransparency = 1
+FooterHint.Text = "●  Need a key? Use Get Key to copy the access link."
+FooterHint.TextColor3 = C.SubText
+FooterHint.Font = Enum.Font.GothamMedium
+FooterHint.TextSize = 11
+FooterHint.TextXAlignment = Enum.TextXAlignment.Left
+FooterHint.Parent = RightPanel
+
+-- ==================== SETTINGS DRAWER ====================
+local SettingsOverlay = Instance.new("Frame")
+SettingsOverlay.Size = UDim2.new(1, 0, 1, 0)
+SettingsOverlay.BackgroundColor3 = Color3.fromRGB(10, 16, 13)
+SettingsOverlay.BackgroundTransparency = 0.25
+SettingsOverlay.Visible = false
+SettingsOverlay.ZIndex = 10
+SettingsOverlay.Parent = RightPanel
+
+local SettingsCard = Instance.new("Frame")
+SettingsCard.Size = UDim2.new(0, 340, 0, 190)
+SettingsCard.Position = UDim2.new(0.5, -170, 0.5, -95)
+SettingsCard.BackgroundColor3 = C.Card
+SettingsCard.ZIndex = 11
+SettingsCard.Parent = SettingsOverlay
+Round(SettingsCard, 10)
+Stroke(SettingsCard, C.BorderBright, 1.2, 0.2)
+
+local SettTitle = Instance.new("TextLabel")
+SettTitle.Size = UDim2.new(1, -24, 0, 28)
+SettTitle.Position = UDim2.new(0, 14, 0, 10)
+SettTitle.BackgroundTransparency = 1
+SettTitle.Text = "LOADER SETTINGS"
+SettTitle.TextColor3 = C.Text
+SettTitle.Font = Enum.Font.GothamBold
+SettTitle.TextSize = 13
+SettTitle.TextXAlignment = Enum.TextXAlignment.Left
+SettTitle.ZIndex = 11
+SettTitle.Parent = SettingsCard
+
+local AutoSaveRow = Instance.new("TextButton")
+AutoSaveRow.Size = UDim2.new(1, -28, 0, 42)
+AutoSaveRow.Position = UDim2.new(0, 14, 0, 48)
+AutoSaveRow.BackgroundColor3 = C.CardDark
+AutoSaveRow.Text = ""
+AutoSaveRow.AutoButtonColor = false
+AutoSaveRow.ZIndex = 11
+AutoSaveRow.Parent = SettingsCard
+Round(AutoSaveRow, 8)
+
+local AutoSaveLbl = Instance.new("TextLabel")
+AutoSaveLbl.Size = UDim2.new(1, -70, 1, 0)
+AutoSaveLbl.Position = UDim2.new(0, 12, 0, 0)
+AutoSaveLbl.BackgroundTransparency = 1
+AutoSaveLbl.Text = "Save Valid Key Locally"
+AutoSaveLbl.TextColor3 = C.Text
+AutoSaveLbl.Font = Enum.Font.GothamBold
+AutoSaveLbl.TextSize = 12
+AutoSaveLbl.TextXAlignment = Enum.TextXAlignment.Left
+AutoSaveLbl.ZIndex = 11
+AutoSaveLbl.Parent = AutoSaveRow
+
+local AutoSaveState = Instance.new("TextLabel")
+AutoSaveState.Size = UDim2.new(0, 52, 0, 24)
+AutoSaveState.Position = UDim2.new(1, -62, 0.5, -12)
+AutoSaveState.BackgroundColor3 = Color3.fromRGB(25, 55, 40)
+AutoSaveState.Text = Config.SaveKeyToFile and "ON" or "OFF"
+AutoSaveState.TextColor3 = C.Green
+AutoSaveState.Font = Enum.Font.GothamBold
+AutoSaveState.TextSize = 11
+AutoSaveState.ZIndex = 12
+AutoSaveState.Parent = AutoSaveRow
+Round(AutoSaveState, 6)
+
+AutoSaveRow.MouseButton1Click:Connect(function()
+	Config.SaveKeyToFile = not Config.SaveKeyToFile
+	AutoSaveState.Text = Config.SaveKeyToFile and "ON" or "OFF"
+	AutoSaveState.TextColor3 = Config.SaveKeyToFile and C.Green or C.Muted
+end)
+
+local CloseSettBtn = Instance.new("TextButton")
+CloseSettBtn.Size = UDim2.new(0, 110, 0, 34)
+CloseSettBtn.Position = UDim2.new(0.5, -55, 1, -48)
+CloseSettBtn.BackgroundColor3 = C.Green
+CloseSettBtn.Text = "Done"
+CloseSettBtn.TextColor3 = Color3.fromRGB(10, 24, 17)
+CloseSettBtn.Font = Enum.Font.GothamBold
+CloseSettBtn.TextSize = 12
+CloseSettBtn.ZIndex = 11
+CloseSettBtn.Parent = SettingsCard
+Round(CloseSettBtn, 7)
+
+-- ==================== BUTTON ANIMATIONS & LOGIC ====================
+local function HoverEffect(btn, stroke, hoverBg, normalBg, hoverStroke, normalStroke)
+	btn.MouseEnter:Connect(function()
+		Tween(btn, 0.14, {BackgroundColor3 = hoverBg})
+		if stroke and hoverStroke then
+			Tween(stroke, 0.14, {Color = hoverStroke, Transparency = 0.05})
+		end
+	end)
+	btn.MouseLeave:Connect(function()
+		Tween(btn, 0.14, {BackgroundColor3 = normalBg})
+		if stroke and normalStroke then
+			Tween(stroke, 0.14, {Color = normalStroke, Transparency = 0.35})
+		end
+	end)
+	btn.MouseButton1Down:Connect(function()
+		Tween(btn, 0.08, {Size = UDim2.new(btn.Size.X.Scale, btn.Size.X.Offset, btn.Size.Y.Scale, btn.Size.Y.Offset - 2)})
+	end)
+	btn.MouseButton1Up:Connect(function()
+		Tween(btn, 0.1, {Size = UDim2.new(btn.Size.X.Scale, btn.Size.X.Offset, btn.Size.Y.Scale, btn.Size.Y.Offset + 2)})
+	end)
+end
+
+HoverEffect(RedeemBtn, RedeemStroke, Color3.fromRGB(28, 44, 37), C.Card, C.BorderBright, C.Border)
+HoverEffect(DiscordBtn, DiscStroke, Color3.fromRGB(28, 44, 37), C.Card, C.BorderBright, C.Border)
+HoverEffect(SettingsBtn, SettStroke, Color3.fromRGB(28, 44, 37), C.Card, C.BorderBright, C.Border)
+HoverEffect(ViewDetailsBtn, ViewStroke, Color3.fromRGB(40, 86, 63), Color3.fromRGB(32, 68, 50), C.Green, C.Green)
+
+GetKeyBtn.MouseEnter:Connect(function()
+	Tween(GetKeyBtn, 0.15, {BackgroundColor3 = Color3.fromRGB(115, 220, 166)})
+end)
+GetKeyBtn.MouseLeave:Connect(function()
+	Tween(GetKeyBtn, 0.15, {BackgroundColor3 = C.Green})
+end)
+
+local function SetStatus(mainText, subText, dotColor, hintText)
+	WaitTitle.Text = mainText
+	WaitSub.Text = subText
+	Tween(WaitDot, 0.15, {BackgroundColor3 = dotColor})
+	if hintText then
+		FooterHint.Text = hintText
+	end
+end
+
+local function GrantAccess(enteredKey)
+	if Config.SaveKeyToFile then
+		pcall(function()
+			if writefile then
+				writefile(Config.KeyFileName, enteredKey)
+			end
+		end)
+	end
+
+	SetStatus("Key verified!", "License active · Unlocking " .. Config.HubName .. "...", C.Green, "●  Access granted! Launching loader...")
+	AuthStatusLbl.Text = "Authenticated · " .. Config.Version
+	Tween(WaitStroke, 0.2, {Color = C.Green, Transparency = 0.1})
+
+	task.delay(0.75, function()
+		Tween(UIScale, 0.22, {Scale = 0.88})
+		Tween(MainWindow, 0.22, {BackgroundTransparency = 1})
+		task.wait(0.24)
+		pcall(function()
+			ScreenGui:Destroy()
+		end)
+
+		if Config.MainScriptUrl and Config.MainScriptUrl ~= "" then
+			pcall(function()
+				loadstring(game:HttpGet(Config.MainScriptUrl))()
+			end)
+		elseif type(Config.OnKeySuccess) == "function" then
+			pcall(Config.OnKeySuccess)
+		end
+	end)
+end
+
+local function CheckKey(rawKey)
+	local cleaned = tostring(rawKey or ""):gsub("^%s*(.-)%s*$", "%1")
+	if cleaned == "" then
+		SetStatus("Key required", "Please paste your " .. Config.HubName .. " license key first", C.Red, "●  Enter a valid key or click Get Key.")
+		Tween(InputStroke, 0.14, {Color = C.Red, Transparency = 0.05})
+		task.delay(0.9, function()
+			Tween(InputStroke, 0.14, {Color = C.Border, Transparency = 0.3})
+		end)
+		return
+	end
+
+	SetStatus("Verifying key...", "Checking license server...", C.Amber, "●  Validating your " .. Config.HubName .. " license...")
+	task.wait(0.25)
+
+	if cleaned == Config.ValidKey then
+		GrantAccess(cleaned)
+	else
+		SetStatus("Invalid key", "License check failed · Try again", C.Red, "●  Invalid key! Use Get Key to get the latest access link.")
+		Tween(InputStroke, 0.14, {Color = C.Red, Transparency = 0.05})
+		task.delay(1.1, function()
+			Tween(InputStroke, 0.14, {Color = C.Border, Transparency = 0.3})
+		end)
+	end
+end
+
+GetKeyBtn.MouseButton1Click:Connect(function()
+	SafeCopy(Config.KeyLink)
+	GetKeyMain.Text = "Link Copied!"
+	GetKeySub.Text = "Paste in browser to get key"
+	SetStatus("Key link copied", "Access link copied to clipboard", C.Green, "●  Key link copied! Open your browser and paste it.")
+	task.delay(1.5, function()
+		GetKeyMain.Text = "Get Key"
+		GetKeySub.Text = "Copy access link"
+	end)
+end)
+
+RedeemBtn.MouseButton1Click:Connect(function()
+	CheckKey(KeyTextBox.Text)
+end)
+
+KeyTextBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		CheckKey(KeyTextBox.Text)
+	end
+end)
+
+TargetRing.MouseButton1Click:Connect(function()
+	KeyTextBox:CaptureFocus()
+end)
+
+local function CopyDiscord()
+	SafeCopy(Config.DiscordLink)
+	FooterHint.Text = "●  Discord invite copied to clipboard!"
+	task.delay(1.8, function()
+		if FooterHint then
+			FooterHint.Text = "●  Need a key? Use Get Key to copy the access link."
+		end
+	end)
+end
+
+DiscordBtn.MouseButton1Click:Connect(CopyDiscord)
+ViewDetailsBtn.MouseButton1Click:Connect(CopyDiscord)
+
+SettingsBtn.MouseButton1Click:Connect(function()
+	SettingsOverlay.Visible = true
+end)
+CloseSettBtn.MouseButton1Click:Connect(function()
+	SettingsOverlay.Visible = false
+end)
+
+-- Minimize & Close behavior
+local minimized = false
+local function ToggleMinimize()
+	minimized = not minimized
+	ContentArea.Visible = not minimized
+	if minimized then
+		Tween(MainWindow, 0.2, {Size = UDim2.new(0, 760, 0, 38)})
+	else
+		Tween(MainWindow, 0.2, {Size = UDim2.new(0, 760, 0, 520)})
+	end
+end
+
+MinBtn.MouseButton1Click:Connect(ToggleMinimize)
+YellowDot.MouseButton1Click:Connect(ToggleMinimize)
+
+CloseBtn.MouseButton1Click:Connect(function()
+	Tween(UIScale, 0.18, {Scale = 0.88})
+	Tween(MainWindow, 0.18, {BackgroundTransparency = 1})
+	task.wait(0.2)
+	pcall(function()
+		ScreenGui:Destroy()
+	end)
+end)
+
+RedDot.MouseButton1Click:Connect(function()
+	CloseBtn.MouseButton1Click:Fire()
+end)
+
+GreenDot.MouseButton1Click:Connect(function()
+	ToggleMinimize()
+end)
+
+-- ==================== ENTRANCE ANIMATION & TIMER ====================
+task.spawn(function()
+	local targetScale = MainWindow:GetAttribute("BaseScale") or 1
+	Tween(MainWindow, 0.28, {BackgroundTransparency = 0})
+	Tween(UIScale, 0.3, {Scale = targetScale}, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+end)
+
+-- Auto-load saved key if enabled
+if Config.SaveKeyToFile then
+	pcall(function()
+		if isfile and readfile and isfile(Config.KeyFileName) then
+			local saved = tostring(readfile(Config.KeyFileName)):gsub("^%s*(.-)%s*$", "%1")
+			if saved ~= "" then
+				KeyTextBox.Text = saved
+			end
+		end
+	end)
+end
+
+-- Session MM:SS counter
+local sessionStart = os.clock()
+task.spawn(function()
+	while task.wait(0.5) do
+		if not ScreenGui or not ScreenGui.Parent then
+			break
+		end
+		local sec = math.floor(os.clock() - sessionStart)
+		local mins = math.floor(sec / 60)
+		local remSec = sec % 60
+		TimerLbl.Text = string.format("%02d:%02d", mins, remSec)
+	end
+end)

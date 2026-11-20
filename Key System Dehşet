@@ -1,7 +1,7 @@
 --[[
     Kryvex - Loader
     by Wozzy @wozzylaco
-    (Custom Upgrade Edition: Favorites, Live Session & Quick Actions)
+    (Live Clock, Auto-Focused Search, Favorites, Server Hop & Quick Actions)
 ]]
 local KeySystem = {}
 KeySystem.__index = KeySystem
@@ -12,7 +12,7 @@ local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
 local TeleportService = game:GetService("TeleportService")
-local Stats = game:GetService("Stats")
+local HttpService = game:GetService("HttpService")
 local Player = Players.LocalPlayer
 
 local isVerifying = false
@@ -504,7 +504,7 @@ local function OpenThemeSelector(onComplete)
 end
 
 -- =======================================================
--- KRYVEX HUB - LOADER MENU (UPGRADED EDITION)
+-- KRYVEX HUB - LOADER MENU
 -- =======================================================
 local function OpenKryvexHubLoader()
     local parentGui = RunService:IsStudio() and Player.PlayerGui or
@@ -665,7 +665,7 @@ local function OpenKryvexHubLoader()
 
     local HeaderSubLabel = Create("TextLabel", {
         Text = "Theme: " .. tostring(SelectedThemeName) .. "  |  Place ID: " .. tostring(game.PlaceId),
-        Size = UDim2.new(0, 380, 0, 14),
+        Size = UDim2.new(0, 420, 0, 14),
         Position = UDim2.new(0, 50, 0, 26),
         BackgroundTransparency = 1,
         Font = Enum.Font.GothamMedium,
@@ -950,7 +950,7 @@ local function OpenKryvexHubLoader()
         }, DetectedBanner)
 
         Create("TextLabel", {
-            Text = "Pick a supported game below or search by name / ID",
+            Text = "Pick a supported game below or search scripts",
             Size = UDim2.new(1, -80, 0, 18),
             Position = UDim2.new(0, 66, 0, 35),
             BackgroundTransparency = 1,
@@ -987,9 +987,10 @@ local function OpenKryvexHubLoader()
         Font = Enum.Font.Gotham,
         TextSize = 12,
         TextColor3 = Color3.fromRGB(255, 255, 255),
-        PlaceholderText = "Search scripts or Place ID...",
+        PlaceholderText = "Search scripts",
         PlaceholderColor3 = Color3.fromRGB(130, 120, 125),
         TextXAlignment = Enum.TextXAlignment.Left,
+        ClearTextOnFocus = false,
         ZIndex = 6
     }, SearchBoxFrame)
 
@@ -1098,7 +1099,6 @@ local function OpenKryvexHubLoader()
             ZIndex = 7
         }, row)
 
-        -- Favorite Star button (pins script to top)
         local favBtn = Create("TextButton", {
             Text = "☆",
             Size = UDim2.new(0, 28, 0, 28),
@@ -1112,7 +1112,6 @@ local function OpenKryvexHubLoader()
         }, row)
         Create("UICorner", {CornerRadius = UDim.new(0, 7)}, favBtn)
 
-        -- Copy URL button
         local copyUrlBtn = Create("TextButton", {
             Text = "URL",
             Size = UDim2.new(0, 34, 0, 28),
@@ -1128,12 +1127,11 @@ local function OpenKryvexHubLoader()
 
         copyUrlBtn.MouseButton1Click:Connect(function()
             if setclipboard then
-                setclipboard(sData.URL)
-                ShowNotification(sData.Name .. " URL copied!")
+                setclipboard('loadstring(game:HttpGet("' .. sData.URL .. '"))()')
+                ShowNotification(sData.Name .. " loadstring copied!")
             end
         end)
 
-        -- Execute button
         local runBtn = Create("TextButton", {
             Text = "▶",
             Size = UDim2.new(0, 32, 0, 28),
@@ -1183,13 +1181,23 @@ local function OpenKryvexHubLoader()
 
     refreshListOrder = function()
         local query = string.lower(SearchBox.Text)
+        local visibleCount = 0
         for _, item in ipairs(allRows) do
             local isFav = favorites[item.Name] == true
             item.Row.LayoutOrder = (isFav and 0 or 100) + item.BaseIndex
             if isFav then
                 item.FavBtn.TextColor3 = currentAccent
             end
-            item.Row.Visible = (query == "" or string.find(string.lower(item.Name), query, 1, true) ~= nil or string.find(item.PlaceIdStr, query, 1, true) ~= nil)
+            local matches = (query == "" or string.find(string.lower(item.Name), query, 1, true) ~= nil or string.find(item.PlaceIdStr, query, 1, true) ~= nil)
+            item.Row.Visible = matches
+            if matches then
+                visibleCount += 1
+            end
+        end
+        if query == "" then
+            CountLabel.Text = tostring(totalSupportedGames) .. " supported games"
+        else
+            CountLabel.Text = tostring(visibleCount) .. " / " .. tostring(totalSupportedGames) .. " found"
         end
         ScrollContainer.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
     end
@@ -1203,7 +1211,7 @@ local function OpenKryvexHubLoader()
         refreshListOrder()
     end)
 
-    -- RIGHT PANEL: SERVER DETAILS + LIVE UPTIME/PERF + COPY ALL & REJOIN
+    -- RIGHT PANEL: SERVER DETAILS + LIVE CLOCK + COPY ALL & SERVER HOP
     local RightSection = Create("Frame", {
         Size = UDim2.new(0, 266, 1, -64),
         Position = UDim2.new(0, 520, 0, 56),
@@ -1351,39 +1359,20 @@ local function OpenKryvexHubLoader()
     CreateDetailCard(147, "PLACE ID", tostring(game.PlaceId), true)
     CreateDetailCard(194, "JOB ID", jobIdStr, true)
     CreateDetailCard(241, "EXECUTOR", executorStr, true)
-    local livePerfLabel = CreateDetailCard(288, "SESSION TIME & FPS", "00:00:00  |  60 FPS", false)
-
-    local startClock = os.clock()
-    local fpsAccumulator = 0
-    local frameCounter = 0
-    local currentFps = 60
-
-    RunService.RenderStepped:Connect(function(dt)
-        if not LoaderGui.Parent then return end
-        frameCounter += 1
-        fpsAccumulator += dt
-        if fpsAccumulator >= 0.5 then
-            currentFps = math.clamp(math.round(frameCounter / fpsAccumulator), 1, 240)
-            frameCounter = 0
-            fpsAccumulator = 0
-        end
-    end)
+    local liveClockLabel = CreateDetailCard(288, "CURRENT TIME", os.date("%H:%M:%S"), false)
 
     task.spawn(function()
         while LoaderGui.Parent do
-            local elapsed = math.floor(os.clock() - startClock)
-            local hrs = math.floor(elapsed / 3600)
-            local mins = math.floor((elapsed % 3600) / 60)
-            local secs = elapsed % 60
-            livePerfLabel.Text = string.format("%02d:%02d:%02d  |  %d FPS", hrs, mins, secs, currentFps)
+            local now = os.date("*t")
+            liveClockLabel.Text = string.format("%02d:%02d:%02d", now.hour, now.min, now.sec)
             task.wait(1)
         end
     end)
 
-    -- BOTTOM ACTION ROW: COPY ALL GAME INFO + REJOIN SERVER
+    -- BOTTOM ACTION ROW: COPY ALL GAME INFO + SERVER HOP
     local CopyAllBtn = Create("TextButton", {
         Text = "Copy all game info",
-        Size = UDim2.new(0.60, -13, 0, 36),
+        Size = UDim2.new(0.58, -13, 0, 36),
         Position = UDim2.new(0, 10, 1, -46),
         BackgroundColor3 = currentAccent,
         Font = Enum.Font.GothamBold,
@@ -1395,10 +1384,10 @@ local function OpenKryvexHubLoader()
     Create("UICorner", {CornerRadius = UDim.new(0, 8)}, CopyAllBtn)
     registerAccent(CopyAllBtn, "BackgroundColor3")
 
-    local RejoinBtn = Create("TextButton", {
-        Text = "Rejoin",
-        Size = UDim2.new(0.40, -12, 0, 36),
-        Position = UDim2.new(0.60, 2, 1, -46),
+    local HopBtn = Create("TextButton", {
+        Text = "Server Hop",
+        Size = UDim2.new(0.42, -12, 0, 36),
+        Position = UDim2.new(0.58, 2, 1, -46),
         BackgroundColor3 = Color3.fromRGB(28, 20, 24),
         Font = Enum.Font.GothamBold,
         TextSize = 11,
@@ -1406,41 +1395,55 @@ local function OpenKryvexHubLoader()
         BorderSizePixel = 0,
         ZIndex = 6
     }, RightSection)
-    Create("UICorner", {CornerRadius = UDim.new(0, 8)}, RejoinBtn)
-    local rejoinStroke = Create("UIStroke", {Color = currentAccent, Thickness = 1.2}, RejoinBtn)
-    registerAccent(rejoinStroke, "Color")
-    registerAccent(RejoinBtn, "TextColor3")
+    Create("UICorner", {CornerRadius = UDim.new(0, 8)}, HopBtn)
+    local hopStroke = Create("UIStroke", {Color = currentAccent, Thickness = 1.2}, HopBtn)
+    registerAccent(hopStroke, "Color")
+    registerAccent(HopBtn, "TextColor3")
 
     CopyAllBtn.MouseButton1Click:Connect(function()
         if setclipboard then
             local allInfo = string.format(
-                "Game: %s\nPlace ID: %s\nJob ID: %s\nExecutor: %s\nStats: %s",
+                "Game: %s\nPlace ID: %s\nJob ID: %s\nExecutor: %s\nTime: %s",
                 GameTitleLabel.Text,
                 tostring(game.PlaceId),
                 jobIdStr,
                 executorStr,
-                livePerfLabel.Text
+                liveClockLabel.Text
             )
             setclipboard(allInfo)
             ShowNotification("All game info copied!")
         end
     end)
 
-    RejoinBtn.MouseButton1Click:Connect(function()
-        ShowNotification("Rejoining server...")
+    HopBtn.MouseButton1Click:Connect(function()
+        ShowNotification("Finding a new server...")
         pcall(function()
-            if game.JobId and game.JobId ~= "" then
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
-            else
-                TeleportService:Teleport(game.PlaceId, Player)
+            local url = string.format("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100", game.PlaceId)
+            local raw = game:HttpGet(url)
+            local decoded = HttpService:JSONDecode(raw)
+            if decoded and decoded.data then
+                for _, srv in ipairs(decoded.data) do
+                    if srv.id ~= game.JobId and tonumber(srv.playing) < tonumber(srv.maxPlayers) then
+                        TeleportService:TeleportToPlaceInstance(game.PlaceId, srv.id, Player)
+                        return
+                    end
+                end
             end
+            TeleportService:Teleport(game.PlaceId, Player)
         end)
     end)
 
-    LoaderFrame.Size = UDim2.new(0, 0, 0, 0)
-    TweenService:Create(LoaderFrame, TweenInfo.new(0.65, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+    local openTween = TweenService:Create(LoaderFrame, TweenInfo.new(0.65, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
         Size = LoaderFrameSize
-    }):Play()
+    })
+    openTween:Play()
+    openTween.Completed:Connect(function()
+        if SearchBox and SearchBox.Parent then
+            pcall(function()
+                SearchBox:CaptureFocus()
+            end)
+        end
+    end)
 end
 
 -- =======================================================

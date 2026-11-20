@@ -2,22 +2,23 @@ local library = loadstring(game:HttpGet("https://github.com/WozzyLaco/Kryvex-Pub
 local displayName = game.Players.LocalPlayer.DisplayName
 
 local window = library:AddWindow(" Kryvex Paid | Muscle Legends || HI - ".. displayName, {
- title_bar = {
-    Color3.fromRGB(255, 30, 60),
-    Color3.fromRGB(180, 10, 40),
-    Color3.fromRGB(100, 0, 20)
+title_bar = {
+    Color3.fromRGB(168, 50, 255),
+    Color3.fromRGB(115, 25, 195),
+    Color3.fromRGB(65, 10, 120)
 },
 title_bar_transparency = 0.1,
 background = {
-    Color3.fromRGB(0, 0, 0),
-    Color3.fromRGB(10, 10, 10),
-    Color3.fromRGB(20, 20, 20)
+    Color3.fromRGB(10, 6, 15),
+    Color3.fromRGB(18, 10, 26),
+    Color3.fromRGB(28, 16, 40)
 },
 background_transparency = 0.1,
-main_color = Color3.fromRGB(255, 50, 75),
+main_color = Color3.fromRGB(155, 45, 245),
 min_size = Vector2.new(500, 350),
 can_resize = true
 })
+
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
